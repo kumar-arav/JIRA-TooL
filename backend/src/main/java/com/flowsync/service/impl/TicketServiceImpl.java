@@ -1,0 +1,225 @@
+package com.flowsync.service.impl;
+
+import com.flowsync.dto.request.CommentRequest;
+import com.flowsync.dto.request.CreateTicketRequest;
+import com.flowsync.dto.request.UpdateTicketStatusRequest;
+import com.flowsync.dto.response.*;
+import com.flowsync.entity.*;
+import com.flowsync.enums.TicketStatus;
+import com.flowsync.exception.ResourceNotFoundException;
+import com.flowsync.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class TicketServiceImpl {
+
+    private final TicketRepository ticketRepository;
+    private final ProjectRepository projectRepository;
+    private final SprintRepository sprintRepository;
+    private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final NotificationRepository notificationRepository;
+
+    public TicketResponse createTicket(CreateTicketRequest req, Long reporterId) {
+        Project project = projectRepository.findById(req.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", req.getProjectId()));
+
+        long count = ticketRepository.findByProject_Id(req.getProjectId()).size() + 1;
+        String ticketKey = project.getProjectKey() + "-" + count;
+
+        Ticket ticket = Ticket.builder()
+                .ticketKey(ticketKey)
+                .title(req.getTitle())
+                .description(req.getDescription())
+                .storyPoints(req.getStoryPoints() != null ? req.getStoryPoints() : 1)
+                .priority(req.getPriority())
+                .dueDate(req.getDueDate())
+                .project(project)
+                .build();
+
+        if (req.getSprintId() != null) {
+            ticket.setSprint(sprintRepository.findById(req.getSprintId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId())));
+        }
+        if (req.getAssigneeId() != null) {
+            User assignee = userRepository.findById(req.getAssigneeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getAssigneeId()));
+            ticket.setAssignee(assignee);
+            // Send notification
+            createNotification(assignee, "TICKET_ASSIGNED",
+                    "New ticket assigned: " + ticketKey,
+                    "You have been assigned to: " + req.getTitle(), ticket.getId());
+        }
+        if (req.getAssignerId() != null) {
+            ticket.setAssigner(userRepository.findById(req.getAssignerId()).orElse(null));
+        }
+        if (reporterId != null) {
+            ticket.setReporter(userRepository.findById(reporterId).orElse(null));
+        }
+
+        return mapToResponse(ticketRepository.save(ticket));
+    }
+
+    public TicketResponse updateStatus(Long ticketId, UpdateTicketStatusRequest req) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+
+        // Developer and Tester active sprint restriction
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            if (currentUser.getRole() == com.flowsync.enums.Role.DEVELOPER || currentUser.getRole() == com.flowsync.enums.Role.TESTER) {
+                if (ticket.getSprint() == null || ticket.getSprint().getStatus() != com.flowsync.enums.SprintStatus.ACTIVE) {
+                    throw new IllegalArgumentException("Developers and Testers can only work on tickets in active sprints");
+                }
+            }
+        }
+
+        // Closure validation
+        if (req.getStatus() == TicketStatus.CLOSED) {
+            if (!ticket.isTesterApproved() || !ticket.isManagerApproved()) {
+                throw new IllegalArgumentException("Ticket cannot be closed without tester and manager approval");
+            }
+            if (req.getClosureNotes() == null || req.getClosureNotes().isBlank()) {
+                throw new IllegalArgumentException("Closure notes are required");
+            }
+            ticket.setClosureNotes(req.getClosureNotes());
+            ticket.setClosureProofUrl(req.getClosureProofUrl());
+        }
+
+        ticket.setStatus(req.getStatus());
+        TicketResponse res = mapToResponse(ticketRepository.save(ticket));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + ", \"status\": \"" + req.getStatus() + "\"}");
+        return res;
+    }
+
+    public TicketResponse approveTester(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+        ticket.setTesterApproved(true);
+        TicketResponse res = mapToResponse(ticketRepository.save(ticket));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
+        return res;
+    }
+
+    public TicketResponse approveManager(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+        ticket.setManagerApproved(true);
+        TicketResponse res = mapToResponse(ticketRepository.save(ticket));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
+        return res;
+    }
+
+    public CommentResponse addComment(Long ticketId, CommentRequest req, Long authorId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", authorId));
+
+        Comment comment = Comment.builder()
+                .content(req.getContent())
+                .ticket(ticket)
+                .author(author)
+                .build();
+        comment = commentRepository.save(comment);
+        return mapCommentToResponse(comment);
+    }
+
+    public List<TicketResponse> getByProject(Long projectId) {
+        return ticketRepository.findByProject_Id(projectId)
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    public List<TicketResponse> getBySprint(Long sprintId) {
+        return ticketRepository.findBySprint_Id(sprintId)
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    public List<TicketResponse> getMyTickets(Long userId) {
+        return ticketRepository.findByAssignee_Id(userId)
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    public TicketResponse getById(Long id) {
+        return mapToResponse(ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", id)));
+    }
+
+    // ── Mappers ──────────────────────────────────────────────────────────────
+
+    public TicketResponse mapToResponse(Ticket t) {
+        return TicketResponse.builder()
+                .id(t.getId())
+                .ticketKey(t.getTicketKey())
+                .title(t.getTitle())
+                .description(t.getDescription())
+                .storyPoints(t.getStoryPoints())
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
+                .priority(t.getPriority() != null ? t.getPriority().name() : null)
+                .dueDate(t.getDueDate())
+                .assignee(t.getAssignee() != null ? mapUser(t.getAssignee()) : null)
+                .assigner(t.getAssigner() != null ? mapUser(t.getAssigner()) : null)
+                .reporter(t.getReporter() != null ? mapUser(t.getReporter()) : null)
+                .projectName(t.getProject() != null ? t.getProject().getName() : null)
+                .projectKey(t.getProject() != null ? t.getProject().getProjectKey() : null)
+                .sprintName(t.getSprint() != null ? t.getSprint().getName() : null)
+                .sprintId(t.getSprint() != null ? t.getSprint().getId() : null)
+                .testerApproved(t.isTesterApproved())
+                .managerApproved(t.isManagerApproved())
+                .closureNotes(t.getClosureNotes())
+                .comments(t.getComments() != null
+                        ? t.getComments().stream().map(this::mapCommentToResponse).collect(Collectors.toList())
+                        : List.of())
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build();
+    }
+
+    private CommentResponse mapCommentToResponse(Comment c) {
+        return CommentResponse.builder()
+                .id(c.getId())
+                .content(c.getContent())
+                .author(mapUser(c.getAuthor()))
+                .createdAt(c.getCreatedAt())
+                .build();
+    }
+
+    public UserResponse mapUser(User u) {
+        if (u == null) return null;
+        return UserResponse.builder()
+                .id(u.getId())
+                .firstName(u.getFirstName())
+                .lastName(u.getLastName())
+                .fullName(u.getFullName())
+                .email(u.getEmail())
+                .role(u.getRole().name())
+                .initials(u.getInitials())
+                .avatarColor(u.getAvatarColor())
+                .active(u.isActive())
+                .lastLoginTime(u.getLastLoginTime())
+                .lastLogoutTime(u.getLastLogoutTime())
+                .build();
+    }
+
+    private void createNotification(User recipient, String type, String title, String message, Long ticketId) {
+        try {
+            Notification n = Notification.builder()
+                    .type(com.flowsync.enums.NotificationType.valueOf(type))
+                    .title(title)
+                    .message(message)
+                    .recipient(recipient)
+                    .relatedTicketId(ticketId)
+                    .build();
+            notificationRepository.save(n);
+            com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"NOTIFICATION_RECEIVED\", \"recipientId\": " + recipient.getId() + ", \"title\": \"" + title + "\", \"message\": \"" + message + "\"}");
+        } catch (Exception ignored) {}
+    }
+}

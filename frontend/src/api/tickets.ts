@@ -1,0 +1,10 @@
+import api from './axios'
+export const getTicketsByProject = (projectId: number) => api.get(`/tickets/project/${projectId}`).then(r => r.data.data)
+export const getTicketsBySprint = (sprintId: number) => api.get(`/tickets/sprint/${sprintId}`).then(r => r.data.data)
+export const getTicket = (id: number) => api.get(`/tickets/${id}`).then(r => r.data.data)
+export const getMyTickets = () => api.get('/tickets/my').then(r => r.data.data)
+export const createTicket = (data: any) => api.post('/tickets', data).then(r => r.data.data)
+export const updateStatus = (id: number, data: any) => api.put(`/tickets/${id}/status`, data).then(r => r.data.data)
+export const approveTester = (id: number) => api.put(`/tickets/${id}/approve/tester`).then(r => r.data.data)
+export const approveManager = (id: number) => api.put(`/tickets/${id}/approve/manager`).then(r => r.data.data)
+export const addComment = (id: number, content: string) => api.post(`/tickets/${id}/comments`, { content }).then(r => r.data.data)
