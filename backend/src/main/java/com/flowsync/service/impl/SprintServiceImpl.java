@@ -71,6 +71,19 @@ public class SprintServiceImpl {
         return resp;
     }
 
+    public void deleteSprint(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", id));
+        if (sprint.getTickets() != null) {
+            for (com.flowsync.entity.Ticket t : sprint.getTickets()) {
+                t.setSprint(null);
+                ticketRepository.save(t);
+            }
+        }
+        sprintRepository.delete(sprint);
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"SPRINT_UPDATED\"}");
+    }
+
     private void sendSprintEmail(Sprint sprint, String action) {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String updaterName = "the project administrator";

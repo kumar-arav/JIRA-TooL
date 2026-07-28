@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getProjects } from '@/api/projects'
-import { getSprintsByProject, startSprint, completeSprint } from '@/api/sprints'
+import { getSprintsByProject, startSprint, completeSprint, deleteSprint } from '@/api/sprints'
 import { Project, Sprint } from '@/types'
 import toast from 'react-hot-toast'
 import { Plus } from 'lucide-react'
@@ -42,6 +42,16 @@ export default function SprintsPage() {
   }
   const handleComplete = async (id: number) => {
     await completeSprint(id); toast.success('Sprint completed!'); fetchSprints()
+  }
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this sprint? Any associated tickets will be returned to the backlog.")) return
+    try {
+      await deleteSprint(id)
+      toast.success('Sprint deleted! 🗑️')
+      fetchSprints()
+    } catch {
+      toast.error('Failed to delete sprint')
+    }
   }
 
   return (
@@ -96,9 +106,14 @@ export default function SprintsPage() {
               <span>{sp.totalTickets} tickets</span>
               <span>{sp.progressPercent}%</span>
             </div>
-            <div className="flex gap-1">
+             <div className="flex gap-1 items-center">
               {canManageSprint && sp.status === 'PLANNED' && <button onClick={() => handleStart(sp.id)} className="btn-primary text-[10px] py-1">Start</button>}
               {canManageSprint && sp.status === 'ACTIVE' && <button onClick={() => handleComplete(sp.id)} className="btn-secondary text-[10px] py-1">Complete</button>}
+              {canManageSprint && (
+                <button onClick={() => handleDelete(sp.id)} className="ml-auto px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded text-[9.5px] font-semibold cursor-pointer">
+                  Delete 🗑️
+                </button>
+              )}
             </div>
           </div>
         ))}
