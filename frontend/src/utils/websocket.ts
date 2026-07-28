@@ -2,14 +2,32 @@ class WebSocketClient {
   private ws: WebSocket | null = null;
   private listeners: Set<(data: any) => void> = new Set();
   private reconnectTimer: any = null;
+  private connectedEmail: string | null = null;
 
   connect() {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      return;
+    let email = '';
+    try {
+      const saved = localStorage.getItem('fs_auth');
+      if (saved) {
+        const authData = JSON.parse(saved);
+        if (authData.user && authData.user.email) {
+          email = authData.user.email;
+        }
+      }
+    } catch (e) {
+      console.error(e);
     }
 
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      if (this.connectedEmail === email) {
+        return;
+      }
+      this.ws.close();
+    }
+
+    this.connectedEmail = email;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/api/ws${email ? `?email=${encodeURIComponent(email)}` : ''}`;
 
     this.ws = new WebSocket(wsUrl);
 

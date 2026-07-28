@@ -61,6 +61,7 @@ export default function AppLayout() {
   const role = user?.role || 'DEVELOPER'
 
   useEffect(() => {
+    wsClient.connect()
     getUnreadCount().then(setUnread).catch(() => { })
 
     const unsubscribe = wsClient.subscribe((data) => {

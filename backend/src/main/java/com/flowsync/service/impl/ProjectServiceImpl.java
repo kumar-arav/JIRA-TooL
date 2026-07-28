@@ -50,9 +50,28 @@ public class ProjectServiceImpl {
                 .build();
 
         if (req.getOwnerId() != null) {
-            project.setOwner(userRepository.findById(req.getOwnerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getOwnerId())));
+            User owner = userRepository.findById(req.getOwnerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getOwnerId()));
+            project.setOwner(owner);
+            // Automatically add the owner to project members
+            project.getMembers().add(owner);
         }
+
+        if (req.getScrumMasterId() != null) {
+            User sm = userRepository.findById(req.getScrumMasterId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getScrumMasterId()));
+            project.getMembers().add(sm);
+        }
+
+        // Automatically add creator to project members
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            if (!project.getMembers().contains(currentUser)) {
+                project.getMembers().add(currentUser);
+            }
+        }
+
         ProjectResponse resp = mapToResponse(projectRepository.save(project));
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
         return resp;

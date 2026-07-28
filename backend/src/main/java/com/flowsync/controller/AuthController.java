@@ -31,8 +31,8 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login with email & password")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest req) {
-        com.flowsync.entity.User user = userRepository.findByEmail(req.getEmail()).orElse(null);
         AuthResponse res = authService.login(req);
+        com.flowsync.entity.User user = userRepository.findByEmail(req.getEmail()).orElse(null);
         String lastLoginStr = user != null && user.getLastLoginTime() != null ? user.getLastLoginTime().toString() : "";
         com.flowsync.config.WebSocketConfiguration
                 .broadcast("{\"type\": \"USER_LOGIN\", \"user\": \"" + req.getEmail() + "\", \"lastLoginTime\": \"" + lastLoginStr + "\"}");

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { createProject } from '@/api/projects'
+import { getUsers } from '@/api/users'
+import { User } from '@/types'
 import toast from 'react-hot-toast'
 
 interface CreateProjectModalProps {
@@ -19,9 +21,23 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
   const [status, setStatus] = useState('PLANNING')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number | ''>('')
+  const [selectedScrumMasterId, setSelectedScrumMasterId] = useState<number | ''>('')
+  const [users, setUsers] = useState<User[]>([])
   const [submitting, setSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (isOpen) {
+      getUsers()
+        .then(setUsers)
+        .catch(() => toast.error('Failed to load users for assignment'))
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
+
+  const projectOwnersList = users.filter(u => u.role === 'PROJECT_OWNER')
+  const scrumMastersList = users.filter(u => u.role === 'SCRUM_MASTER')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +56,8 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
         status,
         startDate: startDate || null,
         endDate: endDate || null,
-        ownerId: user?.id || null
+        ownerId: selectedOwnerId || null,
+        scrumMasterId: selectedScrumMasterId || null
       })
       toast.success('Project created successfully! 🎉')
       onCreated()
@@ -53,6 +70,8 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
       setStatus('PLANNING')
       setStartDate('')
       setEndDate('')
+      setSelectedOwnerId('')
+      setSelectedScrumMasterId('')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to create project')
     } finally {
@@ -104,6 +123,35 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
               onChange={e => setDescription(e.target.value)} 
               placeholder="Brief summary of the project goals..." 
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="field-label">PROJECT OWNER (ASSIGN)</label>
+              <select 
+                className="field-input text-xs" 
+                value={selectedOwnerId} 
+                onChange={e => setSelectedOwnerId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">-- Select Project Owner --</option>
+                {projectOwnersList.map(o => (
+                  <option key={o.id} value={o.id}>{o.fullName}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="field-label">SCRUM MASTER (ASSIGN)</label>
+              <select 
+                className="field-input text-xs" 
+                value={selectedScrumMasterId} 
+                onChange={e => setSelectedScrumMasterId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">-- Select Scrum Master --</option>
+                {scrumMastersList.map(sm => (
+                  <option key={sm.id} value={sm.id}>{sm.fullName}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

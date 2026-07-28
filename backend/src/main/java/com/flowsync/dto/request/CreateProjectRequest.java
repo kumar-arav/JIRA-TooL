@@ -15,4 +15,5 @@ public class CreateProjectRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private Long ownerId;
+    private Long scrumMasterId;
 }
