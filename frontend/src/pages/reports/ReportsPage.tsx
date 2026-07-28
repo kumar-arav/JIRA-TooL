@@ -6,6 +6,7 @@ import { Project, Sprint, Ticket } from '@/types'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts'
 import toast from 'react-hot-toast'
 import ReportPreviewModal from '@/components/modals/ReportPreviewModal'
+import { wsClient } from '@/utils/websocket'
 
 export default function ReportsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -13,14 +14,37 @@ export default function ReportsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [selectedReport, setSelectedReport] = useState<{ title: string; type: string; data?: any } | null>(null)
 
-  useEffect(() => {
-    getProjects().then(async ps => {
+  const loadData = async () => {
+    try {
+      const ps = await getProjects()
       setProjects(ps)
       if (ps.length) {
-        setSprints(await getSprintsByProject(ps[0].id))
-        setTickets(await getTicketsByProject(ps[0].id))
+        const sprs = await getSprintsByProject(ps[0].id)
+        setSprints(sprs)
+        const tix = await getTicketsByProject(ps[0].id)
+        setTickets(tix)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+
+    const unsubscribe = wsClient.subscribe((data) => {
+      if (
+        data.type === 'TICKET_UPDATED' ||
+        data.type === 'TICKET_CREATED' ||
+        data.type === 'TICKET_DELETED' ||
+        data.type === 'SPRINT_UPDATED' ||
+        data.type === 'PROJECT_UPDATED'
+      ) {
+        loadData()
       }
     })
+
+    return () => unsubscribe()
   }, [])
 
   const velocity = sprints.map(s => ({ name: s.name.replace('Sprint ','S'), completed: s.completedPoints, capacity: s.capacityPoints }))
