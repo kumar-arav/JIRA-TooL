@@ -16,7 +16,7 @@ COPY --from=frontend-build /frontend/dist ./src/main/resources/static
 RUN mvn clean package -DskipTests
 
 # Stage 3: Run the unified application
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=backend-build /backend/target/flowsync-backend-1.0.0.jar app.jar
 EXPOSE 8080
