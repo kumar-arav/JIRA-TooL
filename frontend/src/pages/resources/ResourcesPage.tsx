@@ -9,16 +9,25 @@ export default function ResourcesPage() {
   const [users, setUsers] = useState<User[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'ALL' | 'OVERLOADED' | 'AVAILABLE'>('ALL')
+
+  const fetchTickets = async () => {
+    try {
+      const projs = await getProjects()
+      const tixPromises = projs.map((p: Project) => getTicketsByProject(p.id).catch(() => []))
+      const allTix = (await Promise.all(tixPromises)).flat()
+      setTickets(allTix)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     async function load() {
       try {
         const usrs = await getUsers()
         setUsers(usrs)
-        const projs = await getProjects()
-        const tixPromises = projs.map((p: Project) => getTicketsByProject(p.id).catch(() => []))
-        const allTix = (await Promise.all(tixPromises)).flat()
-        setTickets(allTix)
+        await fetchTickets()
       } catch (e) {
         console.error(e)
       } finally {
@@ -32,6 +41,13 @@ export default function ResourcesPage() {
         setUsers(prev => prev.map(usr => usr.email === data.user ? { ...usr, active: true } : usr))
       } else if (data.type === 'USER_LOGOUT') {
         setUsers(prev => prev.map(usr => usr.email === data.user ? { ...usr, active: false } : usr))
+      } else if (
+        data.type === 'TICKET_UPDATED' || 
+        data.type === 'TICKET_CREATED' || 
+        data.type === 'TICKET_DELETED' ||
+        data.type === 'PROJECT_UPDATED'
+      ) {
+        fetchTickets()
       }
     })
 
@@ -63,6 +79,13 @@ export default function ResourcesPage() {
     ? `James D. and Priya R. are over 80% utilized. Consider reassigning upcoming tickets to ${availableUsers.length > 0 ? availableUsers.map(u => u.firstName).join(' or ') : 'available members'} to balance the workload.`
     : `Workload is well-distributed. All resources are within optimal utilization limits.`
 
+  const filteredUsers = users.filter(u => {
+    const util = getUserUtilization(u.id)
+    if (filter === 'OVERLOADED') return util > 80
+    if (filter === 'AVAILABLE') return util <= 20
+    return true
+  })
+
   if (loading) {
     return (
       <div className="page-container flex justify-center py-16">
@@ -82,16 +105,33 @@ export default function ResourcesPage() {
 
       <div className="grid grid-cols-4 gap-3 mb-4">
         {[
-          { label: 'Team Members', value: users.length, color: '#2563EB' },
-          { label: 'Avg Utilization', value: `${avgUtilization}%`, color: '#059669' },
-          { label: 'Overloaded', value: overloadedCount, color: '#DC2626' },
-          { label: 'Available', value: availableCount, color: '#D97706' },
-        ].map(m => (
-          <div key={m.label} className="card text-center">
-            <div className="text-2xl font-black" style={{ color: m.color }}>{m.value}</div>
-            <div className="text-[10.5px] text-slate-400 font-semibold uppercase tracking-wide mt-1">{m.label}</div>
-          </div>
-        ))}
+          { key: 'ALL', label: 'Team Members', value: users.length, color: '#2563EB' },
+          { key: 'ALL_UTIL', label: 'Avg Utilization', value: `${avgUtilization}%`, color: '#059669' },
+          { key: 'OVERLOADED', label: 'Overloaded', value: overloadedCount, color: '#DC2626' },
+          { key: 'AVAILABLE', label: 'Available', value: availableCount, color: '#D97706' },
+        ].map(m => {
+          const isSelected = (m.key === 'ALL' && filter === 'ALL') || filter === m.key
+          return (
+            <div 
+              key={m.label} 
+              onClick={() => {
+                if (m.key === 'ALL' || m.key === 'ALL_UTIL') {
+                  setFilter('ALL')
+                } else {
+                  setFilter(m.key as any)
+                }
+              }}
+              className={`card text-center cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected ? 'ring-2 ring-offset-2 bg-slate-50' : 'border-slate-200'}`}
+              style={{ 
+                borderColor: isSelected ? m.color : undefined,
+                boxShadow: isSelected ? `0 0 0 2px ${m.color}` : undefined
+              }}
+            >
+              <div className="text-2xl font-black" style={{ color: m.color }}>{m.value}</div>
+              <div className="text-[10.5px] text-slate-400 font-semibold uppercase tracking-wide mt-1">{m.label}</div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -106,37 +146,45 @@ export default function ResourcesPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
-              const util = getUserUtilization(u.id)
-              const tasks = getUserTasks(u.id)
-              const color = util > 80 ? '#DC2626' : util > 60 ? '#2563EB' : '#059669'
-              const status = u.active ? 'Active' : 'Offline'
-              const statusTag = u.active ? 'tag-green' : 'tag-gray'
-              return (
-                <tr key={u.id} className="hover:bg-slate-50">
-                  <td className="table-cell">
-                    <div className="flex items-center gap-2">
-                      <div className="avatar w-7 h-7 text-[10px]" style={{ background: u.avatarColor }}>{u.initials}</div>
-                      <div>
-                        <div className="text-[12px] font-semibold text-slate-800">{u.fullName}</div>
-                        <div className="text-[10px] text-slate-400">{u.email}</div>
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="table-cell text-center text-slate-400 py-8 text-[12px]">
+                  No team members matching this filter.
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((u) => {
+                const util = getUserUtilization(u.id)
+                const tasks = getUserTasks(u.id)
+                const color = util > 80 ? '#DC2626' : util > 60 ? '#2563EB' : '#059669'
+                const status = u.active ? 'Active' : 'Offline'
+                const statusTag = u.active ? 'tag-green' : 'tag-gray'
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50">
+                    <td className="table-cell">
+                      <div className="flex items-center gap-2">
+                        <div className="avatar w-7 h-7 text-[10px]" style={{ background: u.avatarColor }}>{u.initials}</div>
+                        <div>
+                          <div className="text-[12px] font-semibold text-slate-800">{u.fullName}</div>
+                          <div className="text-[10px] text-slate-400">{u.email}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="table-cell"><span className="tag tag-gray">{u.role.replace('_', ' ')}</span></td>
-                  <td className="table-cell text-[12px] font-semibold">{tasks}</td>
-                  <td className="table-cell">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${util}%`, background: color }} />
+                    </td>
+                    <td className="table-cell"><span className="tag tag-gray">{u.role.replace('_', ' ')}</span></td>
+                    <td className="table-cell text-[12px] font-semibold">{tasks}</td>
+                    <td className="table-cell">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${util}%`, background: color }} />
+                        </div>
+                        <span className="text-[11px] font-bold w-9 text-right" style={{ color }}>{util}%</span>
                       </div>
-                      <span className="text-[11px] font-bold w-9 text-right" style={{ color }}>{util}%</span>
-                    </div>
-                  </td>
-                  <td className="table-cell"><span className={`tag ${statusTag}`}>{status}</span></td>
-                </tr>
-              )
-            })}
+                    </td>
+                    <td className="table-cell"><span className={`tag ${statusTag}`}>{status}</span></td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
