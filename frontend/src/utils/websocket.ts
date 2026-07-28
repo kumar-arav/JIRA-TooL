@@ -9,7 +9,7 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//localhost:8080/api/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
 
     this.ws = new WebSocket(wsUrl);
 
