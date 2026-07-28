@@ -31,7 +31,7 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
             protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
                 broadcast(message.getPayload());
             }
-        }, "/ws").setAllowedOrigins("*");
+        }, "/ws", "/api/ws").setAllowedOrigins("*");
     }
 
     public static void broadcast(String message) {

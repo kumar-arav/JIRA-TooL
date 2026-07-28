@@ -26,7 +26,8 @@ export default function ProjectDetailPage() {
 
   const currentUser = useSelector((s: RootState) => s.auth.user)
   const canEdit = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER'].includes(currentUser.role)
-  const canManageSprint = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER', 'MANAGER'].includes(currentUser.role)
+  const canManageSprint = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER'].includes(currentUser.role)
+  const canDeleteProject = currentUser && ['ADMIN', 'PROJECT_OWNER'].includes(currentUser.role)
 
   const fetchData = () => {
     if (!id) return
@@ -116,7 +117,7 @@ export default function ProjectDetailPage() {
           )}
           <Link to={`/sprints/${project.id}`} className="btn-secondary">View Sprints</Link>
           <Link to={`/kanban`} className="btn-primary">Open Board</Link>
-          {canEdit && (
+          {canDeleteProject && (
             <button
               onClick={handleDeleteProject}
               className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shadow-sm bg-red-50 text-red-750 hover:bg-red-100 border-red-200 cursor-pointer"

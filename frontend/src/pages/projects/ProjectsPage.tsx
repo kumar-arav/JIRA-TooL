@@ -14,7 +14,7 @@ export default function ProjectsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   const user = useSelector((s: RootState) => s.auth.user)
-  const canCreateProject = user && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER', 'MANAGER'].includes(user.role)
+  const canCreateProject = user && ['ADMIN', 'PROJECT_OWNER', 'SCRUM_MASTER'].includes(user.role)
 
   const fetchProjects = () => {
     setLoading(true)

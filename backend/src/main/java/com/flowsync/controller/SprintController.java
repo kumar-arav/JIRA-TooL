@@ -14,7 +14,7 @@ import java.util.List;
 public class SprintController {
     private final SprintServiceImpl sprintService;
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER','MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
     public ResponseEntity<ApiResponse<SprintResponse>> create(@Valid @RequestBody CreateSprintRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(sprintService.create(req)));
     }
@@ -27,12 +27,12 @@ public class SprintController {
         return ResponseEntity.ok(ApiResponse.ok(sprintService.getById(id)));
     }
     @PutMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER','MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
     public ResponseEntity<ApiResponse<SprintResponse>> start(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(sprintService.startSprint(id)));
     }
     @PutMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER','MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
     public ResponseEntity<ApiResponse<SprintResponse>> complete(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(sprintService.completeSprint(id)));
     }

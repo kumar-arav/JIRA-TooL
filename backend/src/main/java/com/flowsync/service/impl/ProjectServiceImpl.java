@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.flowsync.service.EmailService;
+import com.flowsync.entity.Notification;
+import com.flowsync.enums.NotificationType;
+import com.flowsync.repository.NotificationRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ProjectServiceImpl {
     private final TicketRepository ticketRepository;
     private final TicketServiceImpl ticketService;
     private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
 
     public ProjectResponse create(CreateProjectRequest req) {
         if (projectRepository.existsByProjectKey(req.getProjectKey().toUpperCase())) {
@@ -112,12 +116,42 @@ public class ProjectServiceImpl {
                 addedByEmail = currentUser.getEmail();
             }
 
+            // Create and save persistent in-app Notification
+            try {
+                Notification notification = Notification.builder()
+                        .type(NotificationType.PROJECT_ADDED)
+                        .title("Added to project: " + project.getName())
+                        .message("You have been added to project '" + project.getName() + "' by " + addedByName + ".")
+                        .recipient(user)
+                        .build();
+                notificationRepository.save(notification);
+                com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"NOTIFICATION_RECEIVED\", \"recipientId\": " + user.getId() + ", \"title\": \"Added to project\", \"message\": \"You have been added to project '" + project.getName() + "' by " + addedByName + "\"}");
+            } catch (Exception e) {
+                // Log and ignore
+            }
+
+            // Gather sprint details for the email
+            StringBuilder sprintInfo = new StringBuilder();
+            if (project.getSprints() != null && !project.getSprints().isEmpty()) {
+                sprintInfo.append("\nSprints associated with this project:\n");
+                for (com.flowsync.entity.Sprint s : project.getSprints()) {
+                    sprintInfo.append("- ").append(s.getName())
+                              .append(" (Status: ").append(s.getStatus().name())
+                              .append(", Goal: ").append(s.getGoal() != null && !s.getGoal().isBlank() ? s.getGoal() : "No goal set")
+                              .append(", Dates: ").append(s.getStartDate() != null ? s.getStartDate() : "N/A").append(" to ").append(s.getEndDate() != null ? s.getEndDate() : "N/A")
+                              .append(")\n");
+                }
+            } else {
+                sprintInfo.append("\nNo sprints have been created for this project yet.\n");
+            }
+
             // Send notification email
             String projectUrl = "http://localhost:3000/projects/" + project.getId();
             String subject = "Added to project: " + project.getName();
             String body = "Hello " + user.getFullName() + ",\n\n" +
                           "You have been added to the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + addedByName + ".\n\n" +
-                          "You can access the project here: " + projectUrl + "\n\n" +
+                          "You can access the project here: " + projectUrl + "\n" +
+                          sprintInfo.toString() + "\n" +
                           "You will be able to view and manage contents only for the projects you are part of.\n\n" +
                           "Best regards,\n" +
                           "FlowSync Team";
