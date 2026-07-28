@@ -17,6 +17,7 @@ public class EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(to);
             if (replyTo != null && !replyTo.isEmpty()) {
+                message.setFrom(replyTo);
                 message.setReplyTo(replyTo);
             }
             message.setSubject(subject);
