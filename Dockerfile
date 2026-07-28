@@ -20,4 +20,4 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=backend-build /backend/target/flowsync-backend-1.0.0.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xmx256m", "-Xms128m", "-jar", "app.jar"]
