@@ -40,6 +40,11 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateTicketStatusRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.updateStatus(id, req)));
     }
+    @PutMapping("/{id}/assignee")
+    public ResponseEntity<ApiResponse<TicketResponse>> updateAssignee(@PathVariable Long id, @RequestBody java.util.Map<String, Long> req) {
+        Long assigneeId = req.get("assigneeId");
+        return ResponseEntity.ok(ApiResponse.ok(ticketService.updateAssignee(id, assigneeId)));
+    }
     @PutMapping("/{id}/approve/tester")
     @PreAuthorize("hasAnyRole('ADMIN','TESTER')")
     public ResponseEntity<ApiResponse<TicketResponse>> approveTester(@PathVariable Long id) {

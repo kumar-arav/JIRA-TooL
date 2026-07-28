@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getTicket, addComment, approveTester, approveManager, updateStatus } from '@/api/tickets'
-import { Ticket, STATUS_TAG, PRIORITY_TAG } from '@/types'
+import { getTicket, addComment, approveTester, approveManager, updateStatus, updateAssignee } from '@/api/tickets'
+import { getUsers } from '@/api/users'
+import { Ticket, STATUS_TAG, PRIORITY_TAG, User } from '@/types'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import toast from 'react-hot-toast'
 import { ArrowLeft, CheckCircle, UploadCloud, Paperclip, Eye, Trash2, FileText } from 'lucide-react'
+import { wsClient } from '@/utils/websocket'
 
 export default function TicketDetailPage() {
   const { id } = useParams()
@@ -15,11 +17,23 @@ export default function TicketDetailPage() {
   const [closureNotes, setClosureNotes] = useState('')
   const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; url: string; size: string } | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-
+  const [allUsers, setAllUsers] = useState<User[]>([])
 
   const refresh = () => { if (id) getTicket(parseInt(id)).then(setTicket) }
 
-  useEffect(() => { if (id) getTicket(parseInt(id)).then(setTicket) }, [id])
+  useEffect(() => { 
+    if (id) getTicket(parseInt(id)).then(setTicket)
+    getUsers().then(setAllUsers).catch(() => {})
+  }, [id])
+
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe((evt) => {
+      if (evt.type === 'TICKET_UPDATED' && Number(evt.ticketId) === Number(id)) {
+        refresh()
+      }
+    })
+    return () => unsubscribe()
+  }, [id])
 
   const handleComment = async () => {
     if (!comment.trim() || !id) return
@@ -248,12 +262,39 @@ export default function TicketDetailPage() {
             </div>
             <div>
               <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Assignee</div>
-              {ticket.assignee ? (
-                <div className="flex items-center gap-1.5">
-                  <div className="avatar w-6 h-6 text-[9px]" style={{background:ticket.assignee.avatarColor}}>{ticket.assignee.initials}</div>
-                  <span className="text-[12px] font-semibold">{ticket.assignee.fullName}</span>
+              <div className="flex flex-col gap-1.5">
+                {ticket.assignee ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="avatar w-6 h-6 text-[9px]" style={{background:ticket.assignee.avatarColor}}>{ticket.assignee.initials}</div>
+                    <span className="text-[12px] font-semibold">{ticket.assignee.fullName}</span>
+                  </div>
+                ) : <span className="text-[11px] text-slate-400">Unassigned</span>}
+
+                {/* Transfer Dropdown */}
+                <div className="mt-1 flex items-center gap-1">
+                  <span className="text-[9.5px] text-slate-400 font-semibold uppercase">Transfer:</span>
+                  <select
+                    value={ticket.assignee?.id || ''}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      const uid = val ? Number(val) : null;
+                      try {
+                        await updateAssignee(ticket.id, uid);
+                        toast.success("Ticket transferred successfully! 📧");
+                        refresh();
+                      } catch {
+                        toast.error("Failed to transfer ticket");
+                      }
+                    }}
+                    className="field-input py-0.5 px-1 text-[11px] w-full"
+                  >
+                    <option value="">Unassigned</option>
+                    {allUsers.map(u => (
+                      <option key={u.id} value={u.id}>{u.fullName}</option>
+                    ))}
+                  </select>
                 </div>
-              ) : <span className="text-[11px] text-slate-400">Unassigned</span>}
+              </div>
             </div>
             <div>
               <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Sprint</div>

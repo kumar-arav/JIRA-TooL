@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { getProjects } from '@/api/projects'
 import { getSprintsByProject } from '@/api/sprints'
 import { getTicketsBySprint, updateStatus } from '@/api/tickets'
@@ -122,7 +122,7 @@ export default function KanbanPage() {
                 </div>
               </div>
               {colTickets.map(t => (
-                <div key={t.id} className="kanban-card"
+                <Link key={t.id} to={`/tickets/${t.id}`} className="kanban-card block cursor-pointer"
                   draggable
                   onDragStart={() => setDragging(t.id)}>
                   <div className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ background: PRIORITY_COLOR[t.priority] }} />
@@ -135,7 +135,7 @@ export default function KanbanPage() {
                     )}
                   </div>
                   {t.dueDate && <div className="text-[9px] text-slate-400 mt-1">Due {t.dueDate}</div>}
-                </div>
+                </Link>
               ))}
             </div>
           )

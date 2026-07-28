@@ -8,3 +8,4 @@ export const updateStatus = (id: number, data: any) => api.put(`/tickets/${id}/s
 export const approveTester = (id: number) => api.put(`/tickets/${id}/approve/tester`).then(r => r.data.data)
 export const approveManager = (id: number) => api.put(`/tickets/${id}/approve/manager`).then(r => r.data.data)
 export const addComment = (id: number, content: string) => api.post(`/tickets/${id}/comments`, { content }).then(r => r.data.data)
+export const updateAssignee = (id: number, assigneeId: number | null) => api.put(`/tickets/${id}/assignee`, { assigneeId }).then(r => r.data.data)

@@ -9,6 +9,7 @@ import com.flowsync.enums.TicketStatus;
 import com.flowsync.exception.ResourceNotFoundException;
 import com.flowsync.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TicketServiceImpl {
 
     private final TicketRepository ticketRepository;
@@ -26,6 +28,7 @@ public class TicketServiceImpl {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final NotificationRepository notificationRepository;
+    private final com.flowsync.service.EmailService emailService;
 
     public TicketResponse createTicket(CreateTicketRequest req, Long reporterId) {
         Project project = projectRepository.findById(req.getProjectId())
@@ -38,9 +41,9 @@ public class TicketServiceImpl {
                 .ticketKey(ticketKey)
                 .title(req.getTitle())
                 .description(req.getDescription())
-                .storyPoints(req.getStoryPoints() != null ? req.getStoryPoints() : 1)
+                .storyPoints(req.getStoryPoints())
                 .priority(req.getPriority())
-                .dueDate(req.getDueDate())
+                .status(TicketStatus.TODO)
                 .project(project)
                 .build();
 
@@ -48,30 +51,27 @@ public class TicketServiceImpl {
             ticket.setSprint(sprintRepository.findById(req.getSprintId())
                     .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId())));
         }
+
         if (req.getAssigneeId() != null) {
-            User assignee = userRepository.findById(req.getAssigneeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getAssigneeId()));
-            ticket.setAssignee(assignee);
-            // Send notification
-            createNotification(assignee, "TICKET_ASSIGNED",
-                    "New ticket assigned: " + ticketKey,
-                    "You have been assigned to: " + req.getTitle(), ticket.getId());
-        }
-        if (req.getAssignerId() != null) {
-            ticket.setAssigner(userRepository.findById(req.getAssignerId()).orElse(null));
-        }
-        if (reporterId != null) {
-            ticket.setReporter(userRepository.findById(reporterId).orElse(null));
+            ticket.setAssignee(userRepository.findById(req.getAssigneeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getAssigneeId())));
         }
 
-        return mapToResponse(ticketRepository.save(ticket));
+        if (reporterId != null) {
+            ticket.setReporter(userRepository.findById(reporterId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", reporterId)));
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + saved.getId() + "}");
+        return mapToResponse(saved);
     }
 
     public TicketResponse updateStatus(Long ticketId, UpdateTicketStatusRequest req) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
 
-        // Developer and Tester active sprint restriction
+        // Sprint validation for developers/testers
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof User) {
             User currentUser = (User) auth.getPrincipal();
@@ -97,6 +97,49 @@ public class TicketServiceImpl {
         ticket.setStatus(req.getStatus());
         TicketResponse res = mapToResponse(ticketRepository.save(ticket));
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + ", \"status\": \"" + req.getStatus() + "\"}");
+        return res;
+    }
+
+    public TicketResponse updateAssignee(Long ticketId, Long assigneeId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+        User newAssignee = null;
+        if (assigneeId != null) {
+            newAssignee = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", assigneeId));
+        }
+        ticket.setAssignee(newAssignee);
+        TicketResponse res = mapToResponse(ticketRepository.save(ticket));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
+
+        if (newAssignee != null) {
+            try {
+                // Get currently logged-in user who made the change
+                org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                String assignedByName = "the system administrator";
+                String assignedByEmail = null;
+                if (auth != null && auth.getPrincipal() instanceof User) {
+                    User currentUser = (User) auth.getPrincipal();
+                    assignedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+                    assignedByEmail = currentUser.getEmail();
+                }
+
+                String ticketUrl = "http://localhost:3000/tickets/" + ticket.getId();
+                emailService.sendEmail(
+                    newAssignee.getEmail(),
+                    assignedByEmail,
+                    "Ticket Assigned: " + ticket.getTicketKey() + " - " + ticket.getTitle(),
+                    "Hello " + newAssignee.getFullName() + ",\n\n" +
+                    "The ticket '" + ticket.getTitle() + "' (" + ticket.getTicketKey() + ") has been assigned/transferred to you by " + assignedByName + ".\n\n" +
+                    "You can view the ticket here: " + ticketUrl + "\n\n" +
+                    "Kindly update and complete it as needed.\n\n" +
+                    "Best regards,\n" +
+                    "FlowSync Team"
+                );
+            } catch (Exception e) {
+                log.error("Failed to send email to assigned user: {}", e.getMessage());
+            }
+        }
         return res;
     }
 

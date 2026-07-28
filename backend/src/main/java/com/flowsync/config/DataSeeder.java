@@ -16,7 +16,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class DataSeeder implements CommandLineRunner {
-
     private final UserRepository userRepo;
     private final ProjectRepository projectRepo;
     private final SprintRepository sprintRepo;
@@ -28,8 +27,6 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (userRepo.count() > 0) return;
         log.info("Seeding FlowSync demo data…");
-
-        // ── Users ──
         User sarah  = save(user("Sarah",  "Chen",   "sarah.chen@flowsync.com",  Role.SCRUM_MASTER,    "#1E40AF"));
         User james  = save(user("James",  "Doe",    "james.doe@flowsync.com",   Role.DEVELOPER,       "#059669"));
         User ana    = save(user("Ana",    "Lima",   "ana.lima@flowsync.com",    Role.DEVELOPER,       "#7C3AED"));
