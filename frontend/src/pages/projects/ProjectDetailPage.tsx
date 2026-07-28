@@ -157,7 +157,7 @@ export default function ProjectDetailPage() {
                     onClick={() => handleRemoveMember(m.id)}
                     className="absolute -top-1 -right-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold border border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Remove member"
-                    style={{ width: '16px', height: '16px', padding: 0, lineScale: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: '16px', height: '16px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     ×
                   </button>
