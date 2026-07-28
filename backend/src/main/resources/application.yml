@@ -9,7 +9,7 @@ spring:
 
   # H2 File-Based Database (persistent)
   datasource:
-    url: jdbc:h2:file:~/.flowsync/db/flowsyncdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: "jdbc:h2:file:${user.home}/.flowsync/db/flowsyncdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
     driver-class-name: org.h2.Driver
     username: sa
     password: password
@@ -33,8 +33,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:flowsync@example.com}
-    password: ${MAIL_PASSWORD:secret}
+    username: ${MAIL_USERNAME:aravskumar007@gmail.com}
+    password: ${MAIL_PASSWORD:mflx fjtv bjdv vefo}
     properties:
       mail:
         smtp:

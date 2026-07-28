@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getProject, addMember, removeMember } from '@/api/projects'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getProject, addMember, removeMember, deleteProject } from '@/api/projects'
 import { getSprintsByProject } from '@/api/sprints'
 import { getTicketsByProject } from '@/api/tickets'
 import { getUsers } from '@/api/users'
@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 
 export default function ProjectDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -77,6 +78,18 @@ export default function ProjectDetailPage() {
     }
   }
 
+  const handleDeleteProject = async () => {
+    if (!id) return
+    if (!window.confirm("Are you sure you want to delete this project? This will permanently delete all sprints and tickets associated with it.")) return
+    try {
+      await deleteProject(parseInt(id))
+      toast.success('Project deleted successfully! 🗑️')
+      navigate('/projects')
+    } catch (err: any) {
+      toast.error('Failed to delete project')
+    }
+  }
+
   if (!project) return <div className="page-container flex justify-center py-16"><div className="spinner" style={{width:24,height:24}}/></div>
 
   const memberIds = new Set(project.members.map(m => m.id))
@@ -103,6 +116,14 @@ export default function ProjectDetailPage() {
           )}
           <Link to={`/sprints/${project.id}`} className="btn-secondary">View Sprints</Link>
           <Link to={`/kanban`} className="btn-primary">Open Board</Link>
+          {canEdit && (
+            <button
+              onClick={handleDeleteProject}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shadow-sm bg-red-50 text-red-750 hover:bg-red-100 border-red-200 cursor-pointer"
+            >
+              Delete Project 🗑️
+            </button>
+          )}
         </div>
       </div>
       

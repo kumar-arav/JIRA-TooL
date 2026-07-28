@@ -38,4 +38,10 @@ public class ProjectController {
         projectService.removeMember(id, userId);
         return ResponseEntity.ok(ApiResponse.ok("Member removed", null));
     }
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProject(@PathVariable Long id) {
+        projectService.deleteProject(id);
+        return ResponseEntity.ok(ApiResponse.ok("Project deleted", null));
+    }
 }

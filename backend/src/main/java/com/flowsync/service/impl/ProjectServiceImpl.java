@@ -155,6 +155,13 @@ public class ProjectServiceImpl {
         }
     }
 
+    public void deleteProject(Long id) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+        projectRepository.delete(project);
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
+    }
+
     private ProjectResponse mapToResponse(Project p) {
         List<UserResponse> members = p.getMembers().stream()
                 .map(ticketService::mapUser).collect(Collectors.toList());
