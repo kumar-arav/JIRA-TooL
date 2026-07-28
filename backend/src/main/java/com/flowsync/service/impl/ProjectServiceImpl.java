@@ -49,30 +49,47 @@ public class ProjectServiceImpl {
                 .endDate(req.getEndDate())
                 .build();
 
+        User owner = null;
         if (req.getOwnerId() != null) {
-            User owner = userRepository.findById(req.getOwnerId())
+            owner = userRepository.findById(req.getOwnerId())
                     .orElseThrow(() -> new ResourceNotFoundException("User", req.getOwnerId()));
             project.setOwner(owner);
             // Automatically add the owner to project members
             project.getMembers().add(owner);
         }
 
+        User sm = null;
         if (req.getScrumMasterId() != null) {
-            User sm = userRepository.findById(req.getScrumMasterId())
+            sm = userRepository.findById(req.getScrumMasterId())
                     .orElseThrow(() -> new ResourceNotFoundException("User", req.getScrumMasterId()));
             project.getMembers().add(sm);
         }
 
         // Automatically add creator to project members
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        User creator = null;
+        String creatorName = "the project administrator";
+        String creatorEmail = null;
         if (auth != null && auth.getPrincipal() instanceof User) {
-            User currentUser = (User) auth.getPrincipal();
-            if (!project.getMembers().contains(currentUser)) {
-                project.getMembers().add(currentUser);
+            creator = (User) auth.getPrincipal();
+            creatorName = creator.getFullName() + " (" + creator.getRole().name().replace("_", " ") + ")";
+            creatorEmail = creator.getEmail();
+            if (!project.getMembers().contains(creator)) {
+                project.getMembers().add(creator);
             }
         }
 
-        ProjectResponse resp = mapToResponse(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+
+        // Trigger emails and notifications for default assigned Project Owner and Scrum Master
+        if (owner != null && !owner.equals(creator)) {
+            triggerInvitation(savedProject, owner, creatorName, creatorEmail);
+        }
+        if (sm != null && !sm.equals(creator)) {
+            triggerInvitation(savedProject, sm, creatorName, creatorEmail);
+        }
+
+        ProjectResponse resp = mapToResponse(savedProject);
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
         return resp;
     }
@@ -135,47 +152,49 @@ public class ProjectServiceImpl {
                 addedByEmail = currentUser.getEmail();
             }
 
-            // Create and save persistent in-app Notification
-            try {
-                Notification notification = Notification.builder()
-                        .type(NotificationType.PROJECT_ADDED)
-                        .title("Added to project: " + project.getName())
-                        .message("You have been added to project '" + project.getName() + "' by " + addedByName + ".")
-                        .recipient(user)
-                        .build();
-                notificationRepository.save(notification);
-                com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"NOTIFICATION_RECEIVED\", \"recipientId\": " + user.getId() + ", \"title\": \"Added to project\", \"message\": \"You have been added to project '" + project.getName() + "' by " + addedByName + "\"}");
-            } catch (Exception e) {
-                // Log and ignore
-            }
-
-            // Gather sprint details for the email
-            StringBuilder sprintInfo = new StringBuilder();
-            if (project.getSprints() != null && !project.getSprints().isEmpty()) {
-                sprintInfo.append("\nSprints associated with this project:\n");
-                for (com.flowsync.entity.Sprint s : project.getSprints()) {
-                    sprintInfo.append("- ").append(s.getName())
-                              .append(" (Status: ").append(s.getStatus().name())
-                              .append(", Goal: ").append(s.getGoal() != null && !s.getGoal().isBlank() ? s.getGoal() : "No goal set")
-                              .append(", Dates: ").append(s.getStartDate() != null ? s.getStartDate() : "N/A").append(" to ").append(s.getEndDate() != null ? s.getEndDate() : "N/A")
-                              .append(")\n");
-                }
-            } else {
-                sprintInfo.append("\nNo sprints have been created for this project yet.\n");
-            }
-
-            // Send notification email
-            String projectUrl = "http://localhost:3000/projects/" + project.getId();
-            String subject = "Added to project: " + project.getName();
-            String body = "Hello " + user.getFullName() + ",\n\n" +
-                          "You have been added to the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + addedByName + ".\n\n" +
-                          "You can access the project here: " + projectUrl + "\n" +
-                          sprintInfo.toString() + "\n" +
-                          "You will be able to view and manage contents only for the projects you are part of.\n\n" +
-                          "Best regards,\n" +
-                          "FlowSync Team";
-            emailService.sendEmail(user.getEmail(), addedByEmail, subject, body);
+            triggerInvitation(project, user, addedByName, addedByEmail);
         }
+    }
+
+    private void triggerInvitation(Project project, User user, String addedByName, String addedByEmail) {
+        // Create and save persistent in-app Notification
+        try {
+            Notification notification = Notification.builder()
+                    .type(NotificationType.PROJECT_ADDED)
+                    .title("Added to project: " + project.getName())
+                    .message("You have been added to project '" + project.getName() + "' by " + addedByName + ".")
+                    .recipient(user)
+                    .build();
+            notificationRepository.save(notification);
+            com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"NOTIFICATION_RECEIVED\", \"recipientId\": " + user.getId() + ", \"title\": \"Added to project\", \"message\": \"You have been added to project '" + project.getName() + "' by " + addedByName + "\"}");
+        } catch (Exception ignored) {}
+
+        // Gather sprint details for the email
+        StringBuilder sprintInfo = new StringBuilder();
+        if (project.getSprints() != null && !project.getSprints().isEmpty()) {
+            sprintInfo.append("\nSprints associated with this project:\n");
+            for (com.flowsync.entity.Sprint s : project.getSprints()) {
+                sprintInfo.append("- ").append(s.getName())
+                          .append(" (Status: ").append(s.getStatus().name())
+                          .append(", Goal: ").append(s.getGoal() != null && !s.getGoal().isBlank() ? s.getGoal() : "No goal set")
+                          .append(", Dates: ").append(s.getStartDate() != null ? s.getStartDate() : "N/A").append(" to ").append(s.getEndDate() != null ? s.getEndDate() : "N/A")
+                          .append(")\n");
+            }
+        } else {
+            sprintInfo.append("\nNo sprints have been created for this project yet.\n");
+        }
+
+        // Send notification email
+        String projectUrl = "http://localhost:3000/projects/" + project.getId();
+        String subject = "Added to project: " + project.getName();
+        String body = "Hello " + user.getFullName() + ",\n\n" +
+                      "You have been added to the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + addedByName + ".\n\n" +
+                      "You can access the project here: " + projectUrl + "\n" +
+                      sprintInfo.toString() + "\n" +
+                      "You will be able to view and manage contents only for the projects you are part of.\n\n" +
+                      "Best regards,\n" +
+                      "FlowSync Team";
+        emailService.sendEmail(user.getEmail(), addedByEmail, subject, body);
     }
 
     public void removeMember(Long projectId, Long userId) {
