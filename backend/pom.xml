@@ -72,13 +72,12 @@
       <artifactId>h2</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- Uncomment for MySQL/PostgreSQL in production:
+    <!-- PostgreSQL for production -->
     <dependency>
-      <groupId>com.mysql</groupId>
-      <artifactId>mysql-connector-j</artifactId>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
-    -->
 
     <!-- JWT -->
     <dependency>
