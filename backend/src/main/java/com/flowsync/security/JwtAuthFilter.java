@@ -54,8 +54,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+        } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+            // Quietly ignore stale browser tokens from reset databases
         } catch (Exception e) {
-            log.warn("JWT authentication failed: {}", e.getMessage());
+            log.debug("JWT authentication failed: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

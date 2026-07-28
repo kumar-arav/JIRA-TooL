@@ -9,7 +9,7 @@ spring:
 
   # H2 File-Based Database (persistent)
   datasource:
-    url: jdbc:h2:file:./db/flowsyncdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:~/.flowsync/db/flowsyncdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: password

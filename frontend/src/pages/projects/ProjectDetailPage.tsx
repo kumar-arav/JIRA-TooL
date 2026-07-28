@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getProject, addMember } from '@/api/projects'
+import { getProject, addMember, removeMember } from '@/api/projects'
 import { getSprintsByProject } from '@/api/sprints'
 import { getTicketsByProject } from '@/api/tickets'
 import { getUsers } from '@/api/users'
@@ -25,7 +25,7 @@ export default function ProjectDetailPage() {
 
   const currentUser = useSelector((s: RootState) => s.auth.user)
   const canEdit = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER'].includes(currentUser.role)
-  const canManageSprint = currentUser && ['ADMIN', 'SCRUM_MASTER'].includes(currentUser.role)
+  const canManageSprint = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER', 'MANAGER'].includes(currentUser.role)
 
   const fetchData = () => {
     if (!id) return
@@ -62,6 +62,18 @@ export default function ProjectDetailPage() {
       toast.error('Failed to assign team member')
     } finally {
       setSubmittingMember(false)
+    }
+  }
+
+  const handleRemoveMember = async (userId: number) => {
+    if (!id) return
+    if (!window.confirm("Are you sure you want to remove this member from the project?")) return
+    try {
+      await removeMember(parseInt(id), userId)
+      toast.success('Team member removed successfully! 👥')
+      setRefreshTrigger(prev => prev + 1)
+    } catch (err: any) {
+      toast.error('Failed to remove team member')
     }
   }
 
@@ -113,12 +125,22 @@ export default function ProjectDetailPage() {
           <div className="section-title mb-3">Team Members</div>
           <div className="flex flex-wrap gap-3">
             {project.members.map(m => (
-              <div key={m.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+              <div key={m.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100 relative group">
                 <div className="avatar w-7 h-7 text-[10px]" style={{ background: m.avatarColor }}>{m.initials}</div>
                 <div>
                   <div className="text-xs font-semibold text-slate-800">{m.fullName}</div>
                   <div className="text-[10px] text-slate-400">{m.role.replace('_', ' ')}</div>
                 </div>
+                {canEdit && (
+                  <button
+                    onClick={() => handleRemoveMember(m.id)}
+                    className="absolute -top-1 -right-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold border border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove member"
+                    style={{ width: '16px', height: '16px', padding: 0, lineScale: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
             {project.members.length === 0 && (

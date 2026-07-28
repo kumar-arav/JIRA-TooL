@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.flowsync.service.EmailService;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,6 +28,7 @@ public class ProjectServiceImpl {
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
     private final TicketServiceImpl ticketService;
+    private final EmailService emailService;
 
     public ProjectResponse create(CreateProjectRequest req) {
         if (projectRepository.existsByProjectKey(req.getProjectKey().toUpperCase())) {
@@ -52,12 +55,41 @@ public class ProjectServiceImpl {
     }
 
     public List<ProjectResponse> getAll() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            if (currentUser.getRole() == com.flowsync.enums.Role.ADMIN ||
+                currentUser.getRole() == com.flowsync.enums.Role.CTO ||
+                currentUser.getRole() == com.flowsync.enums.Role.VP) {
+                return projectRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+            } else {
+                return projectRepository.findAll().stream()
+                    .filter(p -> (p.getOwner() != null && p.getOwner().getId().equals(currentUser.getId())) ||
+                                 p.getMembers().stream().anyMatch(m -> m.getId().equals(currentUser.getId())))
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+            }
+        }
         return projectRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     public ProjectResponse getById(Long id) {
-        return mapToResponse(projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", id)));
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            if (currentUser.getRole() != com.flowsync.enums.Role.ADMIN &&
+                currentUser.getRole() != com.flowsync.enums.Role.CTO &&
+                currentUser.getRole() != com.flowsync.enums.Role.VP) {
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(currentUser.getId());
+                boolean isMember = project.getMembers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
+                if (!isOwner && !isMember) {
+                    throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view this project");
+                }
+            }
+        }
+        return mapToResponse(project);
     }
 
     public void addMember(Long projectId, Long userId) {
@@ -69,6 +101,57 @@ public class ProjectServiceImpl {
             project.getMembers().add(user);
             projectRepository.save(project);
             com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
+
+            // Identify who performed the add action
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            String addedByName = "the project administrator";
+            String addedByEmail = null;
+            if (auth != null && auth.getPrincipal() instanceof User) {
+                User currentUser = (User) auth.getPrincipal();
+                addedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+                addedByEmail = currentUser.getEmail();
+            }
+
+            // Send notification email
+            String projectUrl = "http://localhost:3000/projects/" + project.getId();
+            String subject = "Added to project: " + project.getName();
+            String body = "Hello " + user.getFullName() + ",\n\n" +
+                          "You have been added to the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + addedByName + ".\n\n" +
+                          "You can access the project here: " + projectUrl + "\n\n" +
+                          "You will be able to view and manage contents only for the projects you are part of.\n\n" +
+                          "Best regards,\n" +
+                          "FlowSync Team";
+            emailService.sendEmail(user.getEmail(), addedByEmail, subject, body);
+        }
+    }
+
+    public void removeMember(Long projectId, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        if (project.getMembers().contains(user)) {
+            project.getMembers().remove(user);
+            projectRepository.save(project);
+            com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
+
+            // Identify who performed the remove action
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            String removedByName = "the project administrator";
+            String removedByEmail = null;
+            if (auth != null && auth.getPrincipal() instanceof User) {
+                User currentUser = (User) auth.getPrincipal();
+                removedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+                removedByEmail = currentUser.getEmail();
+            }
+
+            // Send notification email
+            String subject = "Removed from project: " + project.getName();
+            String body = "Hello " + user.getFullName() + ",\n\n" +
+                          "You have been removed from the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + removedByName + ".\n\n" +
+                          "Best regards,\n" +
+                          "FlowSync Team";
+            emailService.sendEmail(user.getEmail(), removedByEmail, subject, body);
         }
     }
 

@@ -4,12 +4,17 @@ import { getProjects } from '@/api/projects'
 import { Project, PROJECT_STATUS_TAG, PRIORITY_TAG } from '@/types'
 import { Search, Plus, FolderKanban } from 'lucide-react'
 import CreateProjectModal from '@/components/modals/CreateProjectModal'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  const user = useSelector((s: RootState) => s.auth.user)
+  const canCreateProject = user && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER', 'MANAGER'].includes(user.role)
 
   const fetchProjects = () => {
     setLoading(true)
@@ -29,7 +34,9 @@ export default function ProjectsPage() {
     <div className="page-container">
       <div className="page-header">
         <div><h1 className="page-title">Projects</h1><p className="text-[11.5px] text-slate-400 mt-0.5">{projects.length} projects across your workspace</p></div>
-        <button onClick={() => setShowCreateModal(true)} className="btn-primary"><Plus size={12} /> New Project</button>
+        {canCreateProject && (
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary"><Plus size={12} /> New Project</button>
+        )}
       </div>
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1 max-w-sm">

@@ -20,7 +20,7 @@ export default function SprintsPage() {
   const [showSprintModal, setShowSprintModal] = useState(false)
 
   const user = useSelector((s: RootState) => s.auth.user)
-  const canManageSprint = user && ['ADMIN', 'SCRUM_MASTER'].includes(user.role)
+  const canManageSprint = user && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER', 'MANAGER'].includes(user.role)
 
   const fetchSprints = () => {
     if (selectedProject) getSprintsByProject(selectedProject).then(setSprints)

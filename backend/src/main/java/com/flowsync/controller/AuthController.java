@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthServiceImpl authService;
     private final com.flowsync.repository.UserRepository userRepository;
+    private final com.flowsync.service.EmailService emailService;
 
     @PostMapping("/register")
     @Operation(summary = "Register new user")
@@ -30,12 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login with email & password")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest req) {
-        AuthResponse res = authService.login(req);
         com.flowsync.entity.User user = userRepository.findByEmail(req.getEmail()).orElse(null);
-        String lastLoginStr = user != null && user.getLastLoginTime() != null ? user.getLastLoginTime().toString() : java.time.LocalDateTime.now().toString();
+        AuthResponse res = authService.login(req);
+        String lastLoginStr = user != null && user.getLastLoginTime() != null ? user.getLastLoginTime().toString() : "";
         com.flowsync.config.WebSocketConfiguration
                 .broadcast("{\"type\": \"USER_LOGIN\", \"user\": \"" + req.getEmail() + "\", \"lastLoginTime\": \"" + lastLoginStr + "\"}");
-        return ResponseEntity.ok(ApiResponse.ok("Login successful", res));
+        return ResponseEntity.ok(ApiResponse.ok("Logged in successfully", res));
     }
 
     @PostMapping("/logout")
@@ -65,10 +66,28 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        if (newEmail != null && !newEmail.trim().isEmpty()) {
+        boolean emailChanged = false;
+        if (newEmail != null && !newEmail.trim().isEmpty() && !newEmail.equalsIgnoreCase(email)) {
             user.setEmail(newEmail);
+            emailChanged = true;
         }
         userRepository.save(user);
+
+        if (emailChanged) {
+            try {
+                emailService.sendEmail(
+                    user.getEmail(),
+                    null,
+                    "Profile Email Updated - FlowSync",
+                    "Hello " + user.getFullName() + ",\n\n" +
+                    "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
+                    "Best regards,\n" +
+                    "FlowSync Team"
+                );
+            } catch (Exception e) {
+                // Log exception silently
+            }
+        }
         return ResponseEntity.ok(ApiResponse.ok("User renamed successfully", null));
     }
 
@@ -107,5 +126,102 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.ok("Failed to connect to SMS gateway: " + e.getMessage(), "{\"success\":false,\"error\":\"Connection failed: " + e.getMessage() + "\"}"));
         }
+    }
+
+    @PostMapping("/reset-defaults")
+    @Operation(summary = "Reset demo accounts to defaults")
+    public ResponseEntity<ApiResponse<Void>> resetDefaults() {
+        // Reset Admin
+        userRepository.findByRole(com.flowsync.enums.Role.ADMIN).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Admin");
+            u.setLastName("User");
+            u.setEmail("admin@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Scrum Master
+        userRepository.findByRole(com.flowsync.enums.Role.SCRUM_MASTER).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Sarah");
+            u.setLastName("Chen");
+            u.setEmail("sarah.chen@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Project Owner
+        userRepository.findByRole(com.flowsync.enums.Role.PROJECT_OWNER).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Olivia");
+            u.setLastName("Grant");
+            u.setEmail("olivia.grant@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset CTO
+        userRepository.findByRole(com.flowsync.enums.Role.CTO).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Kevin");
+            u.setLastName("Wu");
+            u.setEmail("kevin.wu@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset VP
+        userRepository.findByRole(com.flowsync.enums.Role.VP).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Victor");
+            u.setLastName("Pace");
+            u.setEmail("victor.pace@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Manager
+        userRepository.findByRole(com.flowsync.enums.Role.MANAGER).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Rita");
+            u.setLastName("Patel");
+            u.setEmail("rita.patel@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Tester
+        userRepository.findByRole(com.flowsync.enums.Role.TESTER).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Priya");
+            u.setLastName("Rao");
+            u.setEmail("priya.rao@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Trainee
+        userRepository.findByRole(com.flowsync.enums.Role.TRAINEE).stream().findFirst().ifPresent(u -> {
+            u.setFirstName("Dan");
+            u.setLastName("Okafor");
+            u.setEmail("dan.okafor@flowsync.com");
+            userRepository.save(u);
+        });
+
+        // Reset Developers
+        java.util.List<com.flowsync.entity.User> devs = userRepository.findByRole(com.flowsync.enums.Role.DEVELOPER);
+        if (devs.size() > 0) {
+            devs.get(0).setFirstName("James");
+            devs.get(0).setLastName("Doe");
+            devs.get(0).setEmail("james.doe@flowsync.com");
+            userRepository.save(devs.get(0));
+        }
+        if (devs.size() > 1) {
+            devs.get(1).setFirstName("Ana");
+            devs.get(1).setLastName("Lima");
+            devs.get(1).setEmail("ana.lima@flowsync.com");
+            userRepository.save(devs.get(1));
+        }
+        if (devs.size() > 2) {
+            devs.get(2).setFirstName("Mike");
+            devs.get(2).setLastName("Kim");
+            devs.get(2).setEmail("mike.kim@flowsync.com");
+            userRepository.save(devs.get(2));
+        }
+        if (devs.size() > 3) {
+            devs.get(3).setFirstName("Tom");
+            devs.get(3).setLastName("Marsh");
+            devs.get(3).setEmail("tom.marsh@flowsync.com");
+            userRepository.save(devs.get(3));
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok("Demo credentials reset successfully", null));
     }
 }

@@ -10,14 +10,11 @@ interface CreateProjectModalProps {
   onCreated: () => void
 }
 
-const EMOJIS = ['📁', '🚀', '🦁', '🛍️', '🏥', '🏦', '🎓', '🍕', '📣', '⚙️', '📈', '🔒']
-
 export default function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProjectModalProps) {
   const user = useSelector((s: RootState) => s.auth.user)
   const [name, setName] = useState('')
   const [projectKey, setProjectKey] = useState('')
   const [description, setDescription] = useState('')
-  const [emoji, setEmoji] = useState(EMOJIS[0])
   const [priority, setPriority] = useState('MEDIUM')
   const [status, setStatus] = useState('PLANNING')
   const [startDate, setStartDate] = useState('')
@@ -38,7 +35,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
         name,
         projectKey: projectKey.toUpperCase(),
         description,
-        emoji,
+        emoji: '📋',
         priority,
         status,
         startDate: startDate || null,
@@ -52,7 +49,6 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
       setName('')
       setProjectKey('')
       setDescription('')
-      setEmoji(EMOJIS[0])
       setPriority('MEDIUM')
       setStatus('PLANNING')
       setStartDate('')
@@ -110,13 +106,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreated }: Creat
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="field-label">EMOJI ICON</label>
-              <select className="field-input text-xs" value={emoji} onChange={e => setEmoji(e.target.value)}>
-                {EMOJIS.map(em => <option key={em} value={em}>{em}</option>)}
-              </select>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="field-label">PRIORITY</label>
               <select className="field-input text-xs" value={priority} onChange={e => setPriority(e.target.value)}>

@@ -14,7 +14,7 @@ import java.util.List;
 public class ProjectController {
     private final ProjectServiceImpl projectService;
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER','MANAGER')")
     public ResponseEntity<ApiResponse<ProjectResponse>> create(@Valid @RequestBody CreateProjectRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(projectService.create(req)));
     }
@@ -31,5 +31,11 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<Void>> addMember(@PathVariable Long id, @PathVariable Long userId) {
         projectService.addMember(id, userId);
         return ResponseEntity.ok(ApiResponse.ok("Member added", null));
+    }
+    @DeleteMapping("/{id}/members/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
+    public ResponseEntity<ApiResponse<Void>> removeMember(@PathVariable Long id, @PathVariable Long userId) {
+        projectService.removeMember(id, userId);
+        return ResponseEntity.ok(ApiResponse.ok("Member removed", null));
     }
 }

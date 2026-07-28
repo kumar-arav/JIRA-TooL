@@ -109,6 +109,23 @@ export default function LoginPage() {
     setExpectedMfa(Math.floor(100000 + Math.random() * 900000).toString())
   }
 
+  const handleRestoreDefaults = async () => {
+    if (!window.confirm("Are you sure you want to restore all demo profiles to defaults?")) return
+    try {
+      await api.post('/auth/reset-defaults')
+      localStorage.removeItem('fs_demo_accounts')
+      setDemoAccounts(DEFAULT_DEMO_ACCOUNTS)
+      const acc = DEFAULT_DEMO_ACCOUNTS[selectedRole]
+      if (acc) {
+        setEmail(acc.email)
+        setPass(acc.password)
+      }
+      toast.success("All demo profiles restored to defaults successfully! 🔄")
+    } catch (err: any) {
+      toast.error("Failed to restore default profiles")
+    }
+  }
+
   const triggerSmsProof = async () => {
     if (!phoneNumber.trim()) {
       return toast.error('Please enter your phone number first')
@@ -368,7 +385,17 @@ export default function LoginPage() {
         
         {/* Horizontal Demo Switcher Bar */}
         <div className="max-w-[480px] w-full mx-auto bg-white/80 border border-slate-200 rounded-lg p-2.5 shadow-sm text-left">
-          <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide mb-1.5">Profile Access</div>
+          <div className="flex justify-between items-center mb-1.5">
+            <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide">Profile Access</div>
+            <button
+              type="button"
+              onClick={handleRestoreDefaults}
+              className="text-[9px] font-bold text-red-500 hover:text-red-700 bg-transparent border-0 cursor-pointer p-0"
+              title="Restore all demo accounts to default names and emails"
+            >
+              Restore Defaults 🔄
+            </button>
+          </div>
           <div className="flex flex-wrap gap-1">
             {ROLES.map(role => (
               <div key={role} className="flex items-center gap-0.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 transition-colors">
