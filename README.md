@@ -1,4 +1,4 @@
-# FlowSync — AI-Powered Agile Project Management Platform
+# IntelliSprint — AI-Powered Agile Project Management Platform
 
 An enterprise-grade Jira-style Project Management & Ticketing System with **Java Spring Boot 3** backend and **React 18 + TypeScript** frontend.
 
@@ -7,7 +7,7 @@ An enterprise-grade Jira-style Project Management & Ticketing System with **Java
 - **9 User Roles** with RBAC: Admin, Scrum Master, Project Owner, CTO, VP, Manager, Developer, Tester, Trainee
 - **JWT Authentication + MFA flow** (Spring Security, BCrypt, refresh tokens)
 - **Projects & Sprints** — create, start, complete, timeline view
-- **AI Task Generation** — describe a project, get sprint tasks with story points, priority, and suggested roles (mock mode; Azure OpenAI-ready)
+- **AI Task Generation** — describe a project, get sprint tasks with story points, priority, and suggested roles (Groq-api)
 - **Kanban Board** — drag-and-drop status changes (TODO → In Progress → In Review → Testing → Closed)
 - **Ticket Management** — assigner/assignee, comments, story points, due dates
 - **Ticket Closure Workflow** — requires closure notes + tester approval + manager approval
@@ -23,7 +23,7 @@ An enterprise-grade Jira-style Project Management & Ticketing System with **Java
 | Frontend  | React 18, TypeScript, Vite, Tailwind CSS, Redux Toolkit, React Router 6, Recharts, Axios, Lucide |
 | Backend   | Java 17, Spring Boot 3.2, Spring Security (JWT), Spring Data JPA, Lombok, SpringDoc OpenAPI |
 | Database  | H2 in-memory (dev) — MySQL/PostgreSQL ready (uncomment driver in `pom.xml`) |
-| AI        | Mock mode included; Azure OpenAI GPT-4o config in `application.yml` |
+| AI        | Mock mode included,Groq(api)based task generations |
 
 ## 🚀 Run
 
