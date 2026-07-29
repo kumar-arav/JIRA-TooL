@@ -16,6 +16,8 @@ public class UserController {
     private final UserRepository userRepository;
     private final TicketServiceImpl ticketService;
     private final com.flowsync.service.EmailService emailService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAll() {
         List<UserResponse> users = userRepository.findAll().stream()
@@ -32,11 +34,20 @@ public class UserController {
         String oldEmail = user.getEmail();
         if (req.containsKey("firstName")) user.setFirstName(req.get("firstName"));
         if (req.containsKey("lastName")) user.setLastName(req.get("lastName"));
+        
+        if (req.containsKey("password") && req.get("password") != null && !req.get("password").trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(req.get("password")));
+        }
+
         boolean emailChanged = false;
         if (req.containsKey("email")) {
             String newEmail = req.get("email");
-            if (newEmail != null && !newEmail.equalsIgnoreCase(oldEmail)) {
-                user.setEmail(newEmail);
+            if (newEmail != null && !newEmail.trim().isEmpty() && !newEmail.trim().equalsIgnoreCase(oldEmail)) {
+                String normalizedNew = newEmail.trim().toLowerCase();
+                if (userRepository.existsByEmail(normalizedNew)) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("Email is already registered by another user"));
+                }
+                user.setEmail(normalizedNew);
                 emailChanged = true;
             }
         }
@@ -44,18 +55,19 @@ public class UserController {
 
         if (emailChanged) {
             try {
-                emailService.sendEmail(
+                String roleText = user.getRole() == com.flowsync.enums.Role.ADMIN 
+                    ? "Admin access is enabled and all administrative actions can be performed." 
+                    : "Employee access is enabled.";
+
+                emailService.sendSystemEmail(
                     user.getEmail(),
-                    null,
                     "Profile Email Updated - FlowSync",
                     "Hello " + user.getFullName() + ",\n\n" +
                     "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
-                    "Best regards,\n" +
-                    "FlowSync Team"
+                    roleText + "\n\n" +
+                    "Best regards,\nFlowSync Team"
                 );
-            } catch (Exception e) {
-                // Log exception silently
-            }
+            } catch (Exception ignored) {}
         }
 
         return ResponseEntity.ok(ApiResponse.ok(ticketService.mapUser(user)));

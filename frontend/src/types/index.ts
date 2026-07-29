@@ -3,11 +3,13 @@ export interface User {
   email: string; role: string; initials: string; avatarColor: string;
   active: boolean; taskCount?: number; utilizationPercent?: number;
   lastLoginTime?: string; lastLogoutTime?: string;
+  department?: string; position?: string; passwordChanged?: boolean; addedByAdmin?: boolean;
 }
 
 export interface Project {
   id: number; projectKey: string; name: string; description: string; emoji: string;
   status: string; priority: string; startDate: string; endDate: string;
+  gitRepo?: string; duration?: string;
   owner: User; members: User[]; totalTickets: number; openTickets: number;
   totalSprints: number; progressPercent: number; createdAt: string;
 }

@@ -25,28 +25,44 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepo.count() > 0) return;
-        log.info("Seeding FlowSync demo data…");
-        User sarah  = save(user("Sarah",  "Chen",   "sarah.chen@flowsync.com",  Role.SCRUM_MASTER,    "#1E40AF"));
-        User james  = save(user("James",  "Doe",    "james.doe@flowsync.com",   Role.DEVELOPER,       "#059669"));
-        User ana    = save(user("Ana",    "Lima",   "ana.lima@flowsync.com",    Role.DEVELOPER,       "#7C3AED"));
-        User mike   = save(user("Mike",   "Kim",    "mike.kim@flowsync.com",    Role.DEVELOPER,       "#0D9488"));
-        User priya  = save(user("Priya",  "Rao",    "priya.rao@flowsync.com",   Role.TESTER,          "#D97706"));
-        User tom    = save(user("Tom",    "Marsh",  "tom.marsh@flowsync.com",   Role.DEVELOPER,       "#DC2626"));
-        User kevin  = save(user("Kevin",  "Wu",     "kevin.wu@flowsync.com",    Role.CTO,             "#7C3AED"));
-        User rita   = save(user("Rita",   "Patel",  "rita.patel@flowsync.com",  Role.MANAGER,         "#DB2777"));
-        User admin  = save(user("Admin",  "User",   "admin@flowsync.com",       Role.ADMIN,           "#374151"));
-        User olivia = save(user("Olivia", "Grant",  "olivia.grant@flowsync.com",Role.PROJECT_OWNER,   "#0EA5E9"));
-        User victor = save(user("Victor", "Pace",   "victor.pace@flowsync.com", Role.VP,              "#8B5CF6"));
-        User dan    = save(user("Dan",    "Okafor", "dan.okafor@flowsync.com",  Role.TRAINEE,         "#94A3B8"));
+        // Only seed on very first boot (empty database).
+        // ALL subsequent restarts leave existing data completely intact.
+        boolean firstTimeSeed = userRepo.count() == 0;
 
-        log.info("Created {} users", userRepo.count());
-        log.info("IntelliSprint initial users seeded. Starting with a clean slate for projects, sprints, and tickets.");
+        if (firstTimeSeed) {
+            log.info("First boot detected — seeding Admin user...");
+
+            String adminRawPassword = "admin123";
+
+            try {
+                java.nio.file.Files.writeString(
+                    java.nio.file.Path.of("admin_credentials.txt"),
+                    "Admin Email: admin@flowsync.com\nTemporary Password: " + adminRawPassword + "\n"
+                );
+                log.info("Admin temporary credentials written to admin_credentials.txt");
+            } catch (Exception e) {
+                log.error("Failed to write admin credentials file: {}", e.getMessage());
+            }
+
+            User admin = User.builder()
+                    .firstName("Admin").lastName("User")
+                    .email("admin@flowsync.com")
+                    .password(encoder.encode(adminRawPassword))
+                    .role(Role.ADMIN).avatarColor("#374151")
+                    .mfaEnabled(true).active(true).passwordChanged(false)
+                    .build();
+            save(admin);
+
+            log.info("Admin user seeded. All data will persist across restarts.");
+        } else {
+            log.info("Database already initialised — all existing data retained.");
+        }
     }
 
     private User user(String fn, String ln, String email, Role role, String color) {
         return User.builder().firstName(fn).lastName(ln).email(email)
-                .password(encoder.encode("password123")).role(role).avatarColor(color).mfaEnabled(true).active(false).build();
+                .password(encoder.encode("password123")).role(role).avatarColor(color).mfaEnabled(true).active(true)
+                .passwordChanged(true).build();
     }
 
     private User save(User u) { return userRepo.save(u); }

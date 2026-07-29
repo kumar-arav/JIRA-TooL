@@ -59,19 +59,21 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              {getGreeting()}, {user?.fullName?.split(' ')[0]} 👋
-            </h1>
-            <RoleTag role={role} />
+      {role !== 'ADMIN' && (
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+                {getGreeting()}, {user?.fullName?.split(' ')[0]} 👋
+              </h1>
+              <RoleTag role={role} />
+            </div>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {DASHBOARD_TITLES[role]} · {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {DASHBOARD_TITLES[role]} · {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
         </div>
-      </div>
+      )}
       {renderRoleDashboard()}
     </div>
   )

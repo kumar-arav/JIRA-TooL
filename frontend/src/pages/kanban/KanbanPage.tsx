@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react'
 import CreateTicketModal from '@/components/modals/CreateTicketModal'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
+import { wsClient } from '@/utils/websocket'
 
 const COLUMNS: { key: TicketStatus; label: string; color: string }[] = [
   { key: 'TODO',       label: 'Todo',       color: '#94A3B8' },
@@ -57,7 +58,17 @@ export default function KanbanPage() {
       fetchTickets()
     }
     window.addEventListener('ticket-updated', handleTicketUpdate)
-    return () => window.removeEventListener('ticket-updated', handleTicketUpdate)
+
+    const unsubscribe = wsClient.subscribe((evt) => {
+      if (evt.type === 'TICKET_UPDATED') {
+        fetchTickets()
+      }
+    })
+
+    return () => {
+      window.removeEventListener('ticket-updated', handleTicketUpdate)
+      unsubscribe()
+    }
   }, [selSprint])
 
   const handleDrop = async (e: React.DragEvent, targetStatus: TicketStatus) => {
@@ -149,6 +160,8 @@ export default function KanbanPage() {
         isOpen={showTicketModal} 
         onClose={() => setShowTicketModal(false)} 
         onCreated={fetchTickets} 
+        defaultProjectId={selProject}
+        defaultSprintId={selSprint}
       />
     </div>
   )

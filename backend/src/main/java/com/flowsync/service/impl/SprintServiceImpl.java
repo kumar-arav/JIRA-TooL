@@ -101,7 +101,11 @@ public class SprintServiceImpl {
                           "The sprint '" + sprint.getName() + "' for project '" + sprint.getProject().getName() + "' has been " + action + " by " + updaterName + ".\n\n" +
                           "Best regards,\n" +
                           "FlowSync Team";
-            emailService.sendEmail(manager.getEmail(), updaterEmail, subject, body);
+            try {
+                emailService.sendEmail(manager.getEmail(), updaterEmail, subject, body);
+            } catch (Exception e) {
+                // Log but do not fail the request if email cannot be sent
+            }
         }
     }
 

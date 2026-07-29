@@ -10,9 +10,17 @@ interface CreateTicketModalProps {
   isOpen: boolean
   onClose: () => void
   onCreated: () => void
+  defaultProjectId?: number | ''
+  defaultSprintId?: number | ''
 }
 
-export default function CreateTicketModal({ isOpen, onClose, onCreated }: CreateTicketModalProps) {
+export default function CreateTicketModal({ 
+  isOpen, 
+  onClose, 
+  onCreated,
+  defaultProjectId = '',
+  defaultSprintId = ''
+}: CreateTicketModalProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -22,8 +30,8 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }: Create
   const [storyPoints, setStoryPoints] = useState(3)
   const [priority, setPriority] = useState('MEDIUM')
   const [dueDate, setDueDate] = useState('')
-  const [selectedProjectId, setSelectedProjectId] = useState<number | ''>('')
-  const [selectedSprintId, setSelectedSprintId] = useState<number | ''>('')
+  const [selectedProjectId, setSelectedProjectId] = useState<number | ''>(defaultProjectId)
+  const [selectedSprintId, setSelectedSprintId] = useState<number | ''>(defaultSprintId)
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<number | ''>('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -31,8 +39,10 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }: Create
     if (isOpen) {
       getProjects().then(setProjects).catch(() => toast.error('Failed to load projects'))
       getUsers().then(setUsers).catch(() => toast.error('Failed to load users'))
+      setSelectedProjectId(defaultProjectId)
+      setSelectedSprintId(defaultSprintId)
     }
-  }, [isOpen])
+  }, [isOpen, defaultProjectId, defaultSprintId])
 
   useEffect(() => {
     if (selectedProjectId) {

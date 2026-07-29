@@ -23,6 +23,7 @@ export default function ProjectDetailPage() {
   const [submittingMember, setSubmittingMember] = useState(false)
   const [showSprintModal, setShowSprintModal] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   const currentUser = useSelector((s: RootState) => s.auth.user)
   const canEdit = currentUser && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER'].includes(currentUser.role)
@@ -32,9 +33,21 @@ export default function ProjectDetailPage() {
   const fetchData = () => {
     if (!id) return
     const pid = parseInt(id)
-    getProject(pid).then(setProject)
-    getSprintsByProject(pid).then(setSprints)
-    getTicketsByProject(pid).then(setTickets)
+    getProject(pid)
+      .then(p => {
+        setProject(p)
+        setError(null)
+      })
+      .catch(err => {
+        const msg = err.response?.data?.message || err.message || '';
+        if (err.response?.status === 403 || msg.toLowerCase().includes("authorized") || msg.toLowerCase().includes("denied")) {
+          setError("Access Denied: You do not have authorization to view this project's workspace.")
+        } else {
+          setError("Failed to load project details.")
+        }
+      })
+    getSprintsByProject(pid).then(setSprints).catch(() => {})
+    getTicketsByProject(pid).then(setTickets).catch(() => {})
   }
 
   useEffect(() => {
@@ -89,6 +102,19 @@ export default function ProjectDetailPage() {
     } catch (err: any) {
       toast.error('Failed to delete project')
     }
+  }
+
+  if (error) {
+    return (
+      <div className="page-container flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div className="text-4xl">🔒</div>
+        <h2 className="text-lg font-black text-slate-850 tracking-tight">Offline Mode / Access Restricted</h2>
+        <p className="text-xs text-slate-500 max-w-sm leading-relaxed">{error}</p>
+        <button onClick={() => navigate(-1)} className="btn-secondary text-[11px] py-1.5 px-3">
+          Go Back
+        </button>
+      </div>
+    )
   }
 
   if (!project) return <div className="page-container flex justify-center py-16"><div className="spinner" style={{width:24,height:24}}/></div>

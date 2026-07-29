@@ -14,6 +14,8 @@ public class CreateProjectRequest {
     private ProjectStatus status;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String gitRepo;
+    private String duration;
     private Long ownerId;
     private Long scrumMasterId;
 }

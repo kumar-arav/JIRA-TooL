@@ -30,20 +30,24 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: "aravskumar007@gmail.com"
+    password: "evrs xuok afbs njll"
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:FlowSyncSuperSecretKeyForJWTTokenSigningMustBe256BitsLongAtLeast2024}
-  expiration: 86400000 # 24 hours in ms
-  refresh-expiration: 604800000 # 7 days in ms
+  expiration: 604800000        # 7 days in ms
+  refresh-expiration: 2592000000 # 30 days in ms
 
 # App Configuration
 app:
@@ -58,9 +62,9 @@ app:
 # Logging
 logging:
   level:
-    com.flowsync: DEBUG
-    org.springframework.security: INFO
-    org.hibernate.SQL: INFO
+    com.flowsync: TRACE
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
 
 # Actuator
 management:

@@ -5,7 +5,7 @@ import { logout } from '@/store/slices/authSlice'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import {
   LayoutDashboard, FolderKanban, Timer, Sparkles, Users,
-  KanbanSquare, Ticket, BarChart2, Bell, LogOut, Menu, Plus
+  KanbanSquare, Ticket, BarChart2, Bell, LogOut, Menu, Plus, Settings
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getUnreadCount } from '@/api/notifications'
@@ -13,6 +13,7 @@ import CreateTicketModal from '../modals/CreateTicketModal'
 import { logoutUser } from '@/api/auth'
 import { wsClient } from '@/utils/websocket'
 import toast from 'react-hot-toast'
+import api from '@/api/axios'
 
 // ── Role-based navigation configuration ─────────────────────────────────────
 // Each nav item declares which roles can see it. Sidebar is filtered per user.
@@ -60,6 +61,18 @@ export default function AppLayout() {
   const [showTicketModal, setShowTicketModal] = useState(false)
   const role = user?.role || 'DEVELOPER'
 
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [settingsEmail, setSettingsEmail] = useState(user?.email || '')
+  const [settingsPassword, setSettingsPassword] = useState('')
+  const [settingsConfirmPassword, setSettingsConfirmPassword] = useState('')
+  const [submittingSettings, setSubmittingSettings] = useState(false)
+
+  useEffect(() => {
+    if (user?.email) {
+      setSettingsEmail(user.email)
+    }
+  }, [user])
+
   useEffect(() => {
     wsClient.connect()
     getUnreadCount().then(setUnread).catch(() => { })
@@ -90,6 +103,35 @@ export default function AppLayout() {
     }
     dispatch(logout())
     navigate('/login')
+  }
+
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!settingsEmail.trim()) {
+      return toast.error("Email address is required")
+    }
+    if (settingsPassword && settingsPassword !== settingsConfirmPassword) {
+      return toast.error("Passwords do not match")
+    }
+
+    setSubmittingSettings(true)
+    try {
+      const payload: Record<string, string> = { email: settingsEmail }
+      if (settingsPassword) {
+        payload.password = settingsPassword
+      }
+
+      await api.put(`/users/${user?.id}`, payload)
+      toast.success("Profile updated successfully! ✉️")
+      setShowSettingsModal(false)
+      setSettingsPassword('')
+      setSettingsConfirmPassword('')
+      setTimeout(() => window.location.reload(), 1000)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update profile settings")
+    } finally {
+      setSubmittingSettings(false)
+    }
   }
 
   // Filter nav per role — sections with no visible items disappear entirely
@@ -136,6 +178,13 @@ export default function AppLayout() {
               <div className="text-xs font-bold text-slate-200 truncate">{user?.fullName}</div>
               <div className="text-[10px] text-slate-400 font-medium">{user?.role?.replace('_', ' ')}</div>
             </div>
+            <button 
+              onClick={() => setShowSettingsModal(true)} 
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-blue-400 mr-1"
+              title="Profile Settings"
+            >
+              <Settings size={12} />
+            </button>
             <button onClick={handleLogout} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-red-500">
               <LogOut size={12} />
             </button>
@@ -170,6 +219,66 @@ export default function AppLayout() {
         onClose={() => setShowTicketModal(false)}
         onCreated={() => window.location.reload()}
       />
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150 border border-slate-200">
+            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
+              <h3 className="font-bold text-xs tracking-wide">⚙️ Profile Settings</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowSettingsModal(false)} 
+                className="text-slate-400 hover:text-white text-xs font-bold bg-transparent border-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSettingsSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">EMAIL ADDRESS *</label>
+                <input
+                  type="email"
+                  className="field-input text-xs"
+                  value={settingsEmail}
+                  onChange={e => setSettingsEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">NEW PASSWORD</label>
+                <input
+                  type="password"
+                  className="field-input text-xs"
+                  placeholder="Leave blank to keep unchanged"
+                  value={settingsPassword}
+                  onChange={e => setSettingsPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CONFIRM NEW PASSWORD</label>
+                <input
+                  type="password"
+                  className="field-input text-xs"
+                  placeholder="Leave blank to keep unchanged"
+                  value={settingsConfirmPassword}
+                  onChange={e => setSettingsConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button type="button" onClick={() => setShowSettingsModal(false)} className="btn-secondary text-[11px] py-1.5" disabled={submittingSettings}>Cancel</button>
+                <button type="submit" className="btn-primary text-[11px] py-1.5" disabled={submittingSettings}>
+                  {submittingSettings ? 'Updating...' : 'Save Settings'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

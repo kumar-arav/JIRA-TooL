@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { KpiCard, Section, EmptyRow } from '@/components/dashboard/shared'
+import { KpiCard, Section, EmptyRow, RoleTag } from '@/components/dashboard/shared'
 import { DashboardData } from '@/components/dashboard/useDashboardData'
 import toast from 'react-hot-toast'
 import ReportPreviewModal from '@/components/modals/ReportPreviewModal'
@@ -118,6 +118,133 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
   const [editLastName, setEditLastName] = useState('')
   const [editEmail, setEditEmail] = useState('')
 
+  // Admin Config Panel States
+  const [showAdminConfigModal, setShowAdminConfigModal] = useState(false)
+  const [adminConfigTab, setAdminConfigTab] = useState<'EMPLOYEE' | 'PROJECT' | 'MEMBER'>('EMPLOYEE')
+
+  // Employee Form
+  const [empName, setEmpName] = useState('')
+  const [empEmail, setEmpEmail] = useState('')
+  const [empDept, setEmpDept] = useState('Engineering')
+  const [empPosition, setEmpPosition] = useState('Developer')
+  const [customDeptPos, setCustomDeptPos] = useState(false)
+
+  const deptPositions: Record<string, string[]> = {
+    'Engineering': ['Developer', 'Scrum Master', 'CTO', 'Trainee'],
+    'QA': ['Tester'],
+    'Product & Management': ['Project Owner', 'Manager', 'VP'],
+    'Design': ['UI Designer', 'UX Designer']
+  }
+
+  const handleDeptChange = (dept: string) => {
+    setEmpDept(dept)
+    const positions = deptPositions[dept] || []
+    if (positions.length > 0) {
+      setEmpPosition(positions[0])
+    }
+  }
+
+  // Project Form
+  const [projName, setProjName] = useState('')
+  const [projKey, setProjKey] = useState('')
+  const [projDuration, setProjDuration] = useState('')
+  const [projGitRepo, setProjGitRepo] = useState('')
+
+  // Member Form
+  const [memberProjId, setMemberProjId] = useState('')
+  const [memberUserId, setMemberUserId] = useState('')
+
+
+  const handleAddEmployeeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!empName.trim() || !empEmail.trim()) {
+      return toast.error("Employee Name and Email are required")
+    }
+    setSubmitting(true)
+    try {
+      await api.post('/admin/add-employee', {
+        name: empName,
+        email: empEmail,
+        department: empDept,
+        position: empPosition
+      })
+      toast.success("Employee registered successfully! Temp password sent by email. ✉️")
+      // Refresh the full users list from the API so the new user appears in Assign Member dropdown
+      const freshUsers = await api.get('/users')
+      setUserList(freshUsers.data?.data || freshUsers.data || [])
+      setEmpName('')
+      setEmpEmail('')
+      setCustomDeptPos(false)
+      setEmpDept('Engineering')
+      setEmpPosition('Developer')
+      setShowAdminConfigModal(false)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to add employee")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleAddProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!projName.trim() || !projKey.trim()) {
+      return toast.error("Project Name and Key are required")
+    }
+    setSubmitting(true)
+    try {
+      await api.post('/projects', {
+        name: projName,
+        projectKey: projKey,
+        duration: projDuration,
+        gitRepo: projGitRepo,
+        priority: 'MEDIUM',
+        status: 'PLANNING'
+      })
+      toast.success("Project created successfully! 🚀")
+      setProjName('')
+      setProjKey('')
+      setProjDuration('')
+      setProjGitRepo('')
+      setShowAdminConfigModal(false)
+      setTimeout(() => window.location.reload(), 1000)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to create project")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteUser = async (id: number) => {
+    if (!window.confirm("Are you sure you want to permanently delete this employee? This will wipe all their details and access.")) return
+    try {
+      await api.delete(`/admin/delete-employee/${id}`)
+      toast.success("Employee deleted successfully! 🗑️")
+      const freshUsers = await api.get('/users')
+      setUserList(freshUsers.data?.data || freshUsers.data || [])
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete employee")
+    }
+  }
+
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!memberProjId || !memberUserId) {
+      return toast.error("Please select a project and a team member")
+    }
+    setSubmitting(true)
+    try {
+      await api.post(`/projects/${memberProjId}/members/${memberUserId}`)
+      toast.success("Member added to project successfully! Notification email sent. ✉️")
+      setMemberProjId('')
+      setMemberUserId('')
+      setShowAdminConfigModal(false)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to assign member to project")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   useEffect(() => {
     setUserList(users)
   }, [users])
@@ -217,23 +344,55 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
 
   return (
     <>
+      {/* Admin Panel Controls */}
+      <div className="flex justify-between items-center mb-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 className="text-sm font-black text-slate-805 uppercase tracking-wider">System Administration Control Panel</h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">Manage employees, projects, and team assignments</p>
+        </div>
+        <button 
+          onClick={() => setShowAdminConfigModal(true)} 
+          className="btn-primary text-xs py-1.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer"
+        >
+          ⚙️ Admin Config
+        </button>
+      </div>
+
+      {/* Greeting Section below Admin Panel Controls */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              {(() => {
+                const hrs = new Date().getHours()
+                if (hrs < 12) return 'Good morning'
+                if (hrs < 17) return 'Good afternoon'
+                return 'Good evening'
+              })()}, {currentUser?.fullName?.split(' ')[0]} 👋
+            </h1>
+            <RoleTag role="ADMIN" />
+          </div>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Admin Dashboard · {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+      </div>
+
       {/* Top: System Health Metrics */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <KpiCard label="System Status" value="99.9%" sub="all services online" accent="#0EA5E9" />
-        <KpiCard label="Server CPU Load" value={cpuLoad} sub="optimal operation" accent="#059669" />
+      <div className="grid grid-cols-2 gap-3 mb-5">
         <KpiCard label="Active Sessions" value={activeSessions} sub="authenticated tokens" accent="#7C3AED" />
         <KpiCard label="Total Users registered" value={userList.length} sub={`${activeUsers} active accounts`} accent="#2563EB" />
       </div>
 
-      {/* Main Grid: Left (User Stats), Center (Permission Matrix), Right (Security Monitoring) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4 items-start">
+      {/* Main Grid: User Statistics Directory Only */}
+      <div className="grid grid-cols-1 gap-4 mb-4">
         
-        {/* Left Column: User Statistics Directory */}
-        <div className="lg:col-span-1 space-y-4">
+        {/* User Statistics Directory */}
+        <div className="space-y-4">
           <Section title="User Directory" sub={`${userList.length} registered accounts`} action={isAdmin && (
             <button onClick={() => setShowAddUserModal(true)} className="btn-primary text-[10px] py-1">+ Add User</button>
           )}>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               {userList.map(u => (
                 <div key={u.id} className="flex flex-col gap-1 p-2 bg-slate-50 border border-slate-100 rounded hover:bg-white transition-colors">
                   <div className="flex items-center gap-2">
@@ -256,6 +415,15 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                       >
                         <Edit size={11} />
                       </button>
+                      {u.role !== 'ADMIN' && (
+                        <button 
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="p-1 text-slate-400 hover:text-red-650 bg-transparent border-0 cursor-pointer font-bold"
+                          title="Delete User"
+                        >
+                          🗑️
+                        </button>
+                      )}
                       <span className={`tag text-[8px] ${u.active ? 'tag-green' : 'tag-gray'}`}>
                         {u.active ? 'ACTIVE' : 'INACTIVE'}
                       </span>
@@ -265,12 +433,12 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                     <div className="pl-8 flex flex-col gap-0.5 text-[9px] text-slate-500 border-t border-slate-100/50 pt-1">
                       {u.lastLoginTime && (
                         <div>
-                          <span className="text-slate-400 font-medium">Last Login:</span> <span className="font-semibold text-slate-600">{formatTimestamp(u.lastLoginTime)}</span>
+                          <span className="text-slate-400 font-medium">Last Login:</span> <span className="font-semibold text-slate-650">{formatTimestamp(u.lastLoginTime)}</span>
                         </div>
                       )}
                       {u.lastLogoutTime && (
                         <div>
-                          <span className="text-slate-400 font-medium">Last Logout:</span> <span className="font-semibold text-slate-600">{formatTimestamp(u.lastLogoutTime)}</span>
+                          <span className="text-slate-400 font-medium">Last Logout:</span> <span className="font-semibold text-slate-650">{formatTimestamp(u.lastLogoutTime)}</span>
                         </div>
                       )}
                     </div>
@@ -281,97 +449,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
           </Section>
         </div>
 
-        {/* Center Column: Permission Matrix (spans 2 columns) */}
-        <div className="lg:col-span-2 space-y-4">
-          <Section title="RBAC Permission Matrix" sub="Role Based Access Control policy enforcement settings">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="table-header text-[9.5px]">Policy Feature</th>
-                    {ROLE_HEADERS.map(h => <th key={h} className="table-header text-[9.5px] text-center px-1">{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {RBAC_MATRIX.map(([label, ...perms]) => (
-                    <tr key={label as string} className="hover:bg-slate-50/50">
-                      <td className="table-cell font-semibold text-[11px] text-slate-700">{label as string}</td>
-                      {perms.map((p, idx) => (
-                        <td key={idx} className="table-cell text-center px-1">
-                          <span className={p ? 'text-emerald-600 font-black text-xs' : 'text-slate-300 text-xs'}>
-                            {p ? '✓' : '·'}
-                          </span>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        </div>
-
-        {/* Right Column: Security Monitoring Dashboard */}
-        <div className="lg:col-span-1 space-y-4">
-          <Section 
-            title="Security Monitoring" 
-            sub="Recent authentication attempts log"
-            action={isAdmin && (
-              <button onClick={() => setShowAddLoginModal(true)} className="btn-primary text-[10px] py-1">
-                + Log Attempt
-              </button>
-            )}
-          >
-            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-              {loginActivity.map((l, i) => (
-                <div key={i} className={`flex flex-col gap-1 p-2 rounded-lg border ${l.ok ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-semibold text-slate-700 truncate max-w-[120px]">{l.user}</span>
-                    <span className="text-slate-400 font-mono text-[9px]">{l.ip}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[9.5px] mt-0.5">
-                    <span className="text-slate-400 font-semibold">{l.role}</span>
-                    <span className={`tag text-[8px] font-bold ${l.ok ? 'tag-green' : 'tag-red'}`}>
-                      {l.ok ? 'SUCCESS' : 'BLOCKED'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {loginActivity.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-400 italic">No login attempts logged.</div>
-              )}
-            </div>
-          </Section>
-        </div>
-
       </div>
-
-      {/* Bottom: Audit Logs */}
-      <Section 
-        title="Audit Logs Trail" 
-        sub="System-wide action and telemetry compliance tracking"
-        action={
-          <div className="flex gap-2">
-            {isAdmin && <button onClick={() => setShowAddLogModal(true)} className="btn-primary text-[10px] py-1">+ Log Event</button>}
-            <button onClick={() => handleOpenReport('Security Report')} className="btn-secondary text-[10px] py-1">↓ Export Security Audit</button>
-          </div>
-        }
-      >
-        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-          {auditLogs.map((a, i) => (
-            <div key={i} className="flex items-start gap-2.5 py-2 border-b border-slate-100 last:border-0 text-xs">
-              <span className={`tag text-[8px] font-bold mt-0.5 ${a.action.includes('FAILED') || a.action.includes('BLOCKED') ? 'tag-red' : 'tag-blue'}`}>
-                {a.action}
-              </span>
-              <span className="flex-1 text-slate-600 leading-normal">{a.detail}</span>
-              <span className="text-[10px] text-slate-400 font-mono flex-shrink-0">{a.when}</span>
-            </div>
-          ))}
-          {auditLogs.length === 0 && (
-            <div className="text-center py-6 text-xs text-slate-400 italic">No audit events recorded.</div>
-          )}
-        </div>
-      </Section>
 
       {/* Add Log Modal */}
       {showAddLogModal && (
@@ -616,6 +694,282 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                 <button type="submit" className="btn-primary text-[11px] py-1.5">Save Changes</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Config Modal Panel */}
+      {showAdminConfigModal && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150 border border-slate-200">
+            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-sm tracking-wide">⚙️ Administration Configuration Panel</h3>
+                <p className="text-[10px] text-slate-300">Admin-only operations tool</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowAdminConfigModal(false)} 
+                className="text-slate-400 hover:text-white text-xs font-bold bg-transparent border-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Tabs Header */}
+            <div className="flex border-b border-slate-200 bg-slate-50">
+              <button 
+                type="button"
+                onClick={() => setAdminConfigTab('EMPLOYEE')}
+                className={`flex-1 py-2.5 text-center text-xs font-extrabold cursor-pointer border-0 bg-transparent ${adminConfigTab === 'EMPLOYEE' ? 'border-b-2 border-brand text-brand' : 'text-slate-650 hover:bg-slate-100'}`}
+              >
+                👥 Add Employee
+              </button>
+              <button 
+                type="button"
+                onClick={() => setAdminConfigTab('PROJECT')}
+                className={`flex-1 py-2.5 text-center text-xs font-extrabold cursor-pointer border-0 bg-transparent ${adminConfigTab === 'PROJECT' ? 'border-b-2 border-brand text-brand' : 'text-slate-650 hover:bg-slate-100'}`}
+              >
+                🚀 Add Project
+              </button>
+              <button 
+                type="button"
+                onClick={() => setAdminConfigTab('MEMBER')}
+                className={`flex-1 py-2.5 text-center text-xs font-extrabold cursor-pointer border-0 bg-transparent ${adminConfigTab === 'MEMBER' ? 'border-b-2 border-brand text-brand' : 'text-slate-650 hover:bg-slate-100'}`}
+              >
+                🔗 Assign Member
+              </button>
+            </div>
+
+            <div className="p-6 max-h-[400px] overflow-y-auto">
+              
+              {/* TAB 1: ADD EMPLOYEE FORM */}
+              {adminConfigTab === 'EMPLOYEE' && (
+                <form onSubmit={handleAddEmployeeSubmit} className="space-y-4">
+                  <div className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100">
+                    Add new employee. A temporary password starting with <code>EMP-</code> will be generated and dispatched to their email address.
+                  </div>
+                  <div>
+                    <label className="field-label">FULL NAME *</label>
+                    <input 
+                      type="text" 
+                      className="field-input text-xs" 
+                      placeholder="e.g. John Doe"
+                      value={empName}
+                      onChange={e => setEmpName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label">EMAIL ADDRESS *</label>
+                    <input 
+                      type="email" 
+                      className="field-input text-xs" 
+                      placeholder="e.g. john.doe@flowsync.com"
+                      value={empEmail}
+                      onChange={e => setEmpEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end mb-2">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[10px] font-bold text-slate-650 uppercase tracking-wide">
+                      <input 
+                        type="checkbox" 
+                        checked={customDeptPos} 
+                        onChange={e => {
+                          setCustomDeptPos(e.target.checked)
+                          if (e.target.checked) {
+                            setEmpDept('')
+                            setEmpPosition('')
+                          } else {
+                            setEmpDept('Engineering')
+                            setEmpPosition('Developer')
+                          }
+                        }}
+                        className="rounded border-slate-350 text-brand focus:ring-brand"
+                      />
+                      Use Custom Dept & Position
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="field-label">DEPARTMENT *</label>
+                      {customDeptPos ? (
+                        <input 
+                          type="text" 
+                          className="field-input text-xs" 
+                          placeholder="e.g. Marketing" 
+                          value={empDept} 
+                          onChange={e => setEmpDept(e.target.value)} 
+                          required 
+                        />
+                      ) : (
+                        <select 
+                          className="field-input text-xs cursor-pointer"
+                          value={empDept}
+                          onChange={e => handleDeptChange(e.target.value)}
+                          required
+                        >
+                          {Object.keys(deptPositions).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <div>
+                      <label className="field-label">POSITION *</label>
+                      {customDeptPos ? (
+                        <input 
+                          type="text" 
+                          className="field-input text-xs" 
+                          placeholder="e.g. Creative Lead" 
+                          value={empPosition} 
+                          onChange={e => setEmpPosition(e.target.value)} 
+                          required 
+                        />
+                      ) : (
+                        <select 
+                          className="field-input text-xs cursor-pointer"
+                          value={empPosition}
+                          onChange={e => setEmpPosition(e.target.value)}
+                          required
+                        >
+                          {(deptPositions[empDept] || []).map(pos => (
+                            <option key={pos} value={pos}>{pos}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowAdminConfigModal(false)} className="btn-secondary text-[11px] py-1.5" disabled={submitting}>Cancel</button>
+                    <button type="submit" className="btn-primary text-[11px] py-1.5" disabled={submitting}>
+                      {submitting ? 'Registering...' : 'Add Employee'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 2: ADD PROJECT FORM */}
+              {adminConfigTab === 'PROJECT' && (
+                <form onSubmit={handleAddProjectSubmit} className="space-y-4">
+                  <div className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100">
+                    Create a new system project portfolio.
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                      <label className="field-label">PROJECT NAME *</label>
+                      <input 
+                        type="text" 
+                        className="field-input text-xs" 
+                        placeholder="e.g. Mobile Application"
+                        value={projName}
+                        onChange={e => setProjName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label">KEY (Max 10) *</label>
+                      <input 
+                        type="text" 
+                        className="field-input text-xs font-mono uppercase" 
+                        placeholder="e.g. MOB"
+                        maxLength={10}
+                        value={projKey}
+                        onChange={e => setProjKey(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="field-label">DURATION</label>
+                      <input 
+                        type="text" 
+                        className="field-input text-xs" 
+                        placeholder="e.g. 12 Weeks"
+                        value={projDuration}
+                        onChange={e => setProjDuration(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label">GIT REPOSITORY URL</label>
+                      <input 
+                        type="text" 
+                        className="field-input text-xs font-mono" 
+                        placeholder="e.g. https://github.com/..."
+                        value={projGitRepo}
+                        onChange={e => setProjGitRepo(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowAdminConfigModal(false)} className="btn-secondary text-[11px] py-1.5" disabled={submitting}>Cancel</button>
+                    <button type="submit" className="btn-primary text-[11px] py-1.5" disabled={submitting}>
+                      {submitting ? 'Creating...' : 'Create Project'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 3: ASSIGN MEMBER FORM */}
+              {adminConfigTab === 'MEMBER' && (
+                <form onSubmit={handleAddMemberSubmit} className="space-y-4">
+                  <div className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100">
+                    Add a registered employee as a team member of a project. This grants them full access to the project details.
+                  </div>
+                  <div>
+                    <label className="field-label">SELECT PROJECT *</label>
+                    <select 
+                      className="field-input text-xs cursor-pointer"
+                      value={memberProjId}
+                      onChange={e => setMemberProjId(e.target.value)}
+                      required
+                    >
+                      <option value="">-- Choose Project --</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.emoji} {p.name} ({p.projectKey})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Associated Git Repo auto-populated */}
+                  <div>
+                    <label className="field-label">ASSOCIATED GIT REPOSITORY</label>
+                    <input 
+                      type="text" 
+                      className="field-input text-xs bg-slate-100 cursor-not-allowed text-slate-500 font-mono"
+                      value={projects.find(proj => String(proj.id) === memberProjId)?.gitRepo || 'No Git Repository Associated'}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className="field-label">SELECT TEAM MEMBER *</label>
+                    <select 
+                      className="field-input text-xs cursor-pointer"
+                      value={memberUserId}
+                      onChange={e => setMemberUserId(e.target.value)}
+                      required
+                    >
+                      <option value="">-- Choose Member --</option>
+                      {userList.filter(u => u.role !== 'ADMIN').map(u => (
+                        <option key={u.id} value={u.id}>{u.fullName} — {u.role?.replace(/_/g,' ')} {u.department ? `(${u.department})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowAdminConfigModal(false)} className="btn-secondary text-[11px] py-1.5" disabled={submitting}>Cancel</button>
+                    <button type="submit" className="btn-primary text-[11px] py-1.5" disabled={submitting}>
+                      {submitting ? 'Assigning...' : 'Assign Member'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+            </div>
           </div>
         </div>
       )}

@@ -37,7 +37,7 @@ export function useDashboardData(): DashboardData {
 
   useEffect(() => {
     const unsubscribe = wsClient.subscribe((evt) => {
-      if (evt.type === 'PROJECT_UPDATED' || evt.type === 'SPRINT_UPDATED' || evt.type === 'TICKET_UPDATED') {
+      if (evt.type === 'PROJECT_UPDATED' || evt.type === 'SPRINT_UPDATED' || evt.type === 'TICKET_UPDATED' || evt.type === 'USER_REGISTERED') {
         setRefreshTrigger(prev => prev + 1)
       }
     })

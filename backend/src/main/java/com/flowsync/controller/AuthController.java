@@ -18,6 +18,7 @@ public class AuthController {
     private final AuthServiceImpl authService;
     private final com.flowsync.repository.UserRepository userRepository;
     private final com.flowsync.service.EmailService emailService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @PostMapping("/register")
     @Operation(summary = "Register new user")
@@ -32,10 +33,12 @@ public class AuthController {
     @Operation(summary = "Login with email & password")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest req) {
         AuthResponse res = authService.login(req);
-        com.flowsync.entity.User user = userRepository.findByEmail(req.getEmail()).orElse(null);
-        String lastLoginStr = user != null && user.getLastLoginTime() != null ? user.getLastLoginTime().toString() : "";
-        com.flowsync.config.WebSocketConfiguration
-                .broadcast("{\"type\": \"USER_LOGIN\", \"user\": \"" + req.getEmail() + "\", \"lastLoginTime\": \"" + lastLoginStr + "\"}");
+        if (!res.isMfaRequired()) {
+            com.flowsync.entity.User user = userRepository.findByEmail(req.getEmail()).orElse(null);
+            String lastLoginStr = user != null && user.getLastLoginTime() != null ? user.getLastLoginTime().toString() : "";
+            com.flowsync.config.WebSocketConfiguration
+                    .broadcast("{\"type\": \"USER_LOGIN\", \"user\": \"" + req.getEmail() + "\", \"lastLoginTime\": \"" + lastLoginStr + "\"}");
+        }
         return ResponseEntity.ok(ApiResponse.ok("Logged in successfully", res));
     }
 
@@ -75,14 +78,12 @@ public class AuthController {
 
         if (emailChanged) {
             try {
-                emailService.sendEmail(
+                emailService.sendSystemEmail(
                     user.getEmail(),
-                    null,
                     "Profile Email Updated - FlowSync",
                     "Hello " + user.getFullName() + ",\n\n" +
                     "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
-                    "Best regards,\n" +
-                    "FlowSync Team"
+                    "Best regards,\nFlowSync Team"
                 );
             } catch (Exception e) {
                 // Log exception silently
@@ -136,7 +137,15 @@ public class AuthController {
             u.setFirstName("Admin");
             u.setLastName("User");
             u.setEmail("admin@flowsync.com");
+            u.setPassword(passwordEncoder.encode("admin123"));
+            u.setPasswordChanged(false);
             userRepository.save(u);
+            try {
+                java.nio.file.Files.writeString(
+                    java.nio.file.Path.of("admin_credentials.txt"),
+                    "Admin Email: admin@flowsync.com\nTemporary Password: admin123\n"
+                );
+            } catch (Exception ignored) {}
         });
 
         // Reset Scrum Master
@@ -144,6 +153,8 @@ public class AuthController {
             u.setFirstName("Sarah");
             u.setLastName("Chen");
             u.setEmail("sarah.chen@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -152,6 +163,8 @@ public class AuthController {
             u.setFirstName("Olivia");
             u.setLastName("Grant");
             u.setEmail("olivia.grant@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -160,6 +173,8 @@ public class AuthController {
             u.setFirstName("Kevin");
             u.setLastName("Wu");
             u.setEmail("kevin.wu@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -168,6 +183,8 @@ public class AuthController {
             u.setFirstName("Victor");
             u.setLastName("Pace");
             u.setEmail("victor.pace@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -176,6 +193,8 @@ public class AuthController {
             u.setFirstName("Rita");
             u.setLastName("Patel");
             u.setEmail("rita.patel@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -184,6 +203,8 @@ public class AuthController {
             u.setFirstName("Priya");
             u.setLastName("Rao");
             u.setEmail("priya.rao@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -192,6 +213,8 @@ public class AuthController {
             u.setFirstName("Dan");
             u.setLastName("Okafor");
             u.setEmail("dan.okafor@flowsync.com");
+            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPasswordChanged(true);
             userRepository.save(u);
         });
 
@@ -201,27 +224,117 @@ public class AuthController {
             devs.get(0).setFirstName("James");
             devs.get(0).setLastName("Doe");
             devs.get(0).setEmail("james.doe@flowsync.com");
+            devs.get(0).setPassword(passwordEncoder.encode("password123"));
+            devs.get(0).setPasswordChanged(true);
             userRepository.save(devs.get(0));
         }
         if (devs.size() > 1) {
             devs.get(1).setFirstName("Ana");
             devs.get(1).setLastName("Lima");
             devs.get(1).setEmail("ana.lima@flowsync.com");
+            devs.get(1).setPassword(passwordEncoder.encode("password123"));
+            devs.get(1).setPasswordChanged(true);
             userRepository.save(devs.get(1));
         }
         if (devs.size() > 2) {
             devs.get(2).setFirstName("Mike");
             devs.get(2).setLastName("Kim");
             devs.get(2).setEmail("mike.kim@flowsync.com");
+            devs.get(2).setPassword(passwordEncoder.encode("password123"));
+            devs.get(2).setPasswordChanged(true);
             userRepository.save(devs.get(2));
         }
         if (devs.size() > 3) {
             devs.get(3).setFirstName("Tom");
             devs.get(3).setLastName("Marsh");
             devs.get(3).setEmail("tom.marsh@flowsync.com");
+            devs.get(3).setPassword(passwordEncoder.encode("password123"));
+            devs.get(3).setPasswordChanged(true);
             userRepository.save(devs.get(3));
         }
 
         return ResponseEntity.ok(ApiResponse.ok("Demo credentials reset successfully", null));
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change admin password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody java.util.Map<String, String> req) {
+        String email = req.get("email");
+        String newPassword = req.get("newPassword");
+        String confirmPassword = req.get("confirmPassword");
+
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("New password cannot be empty"));
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Passwords do not match"));
+        }
+
+        com.flowsync.entity.User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChanged(true);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(ApiResponse.ok("Password changed successfully", null));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request a password reset link")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody java.util.Map<String, String> req) {
+        String email = req.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Email is required"));
+        }
+
+        String normalizedEmail = email.trim().toLowerCase();
+        com.flowsync.entity.User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+        if (user != null) {
+            String resetUrl = "http://localhost:3000/login?action=reset-password&email=" + normalizedEmail;
+            try {
+                emailService.sendSystemEmail(
+                    normalizedEmail,
+                    "Password Reset Request - IntelliSprint",
+                    "Hello " + user.getFullName() + ",\n\n" +
+                    "We received a request to reset your password. Click the link below to proceed:\n\n" +
+                    resetUrl + "\n\n" +
+                    "Best regards,\nFlowSync Team"
+                );
+            } catch (Exception e) {
+                // Ignore email failure in response but log it
+            }
+        }
+        return ResponseEntity.ok(ApiResponse.ok("Password reset email dispatched if account exists", null));
+    }
+
+    @PutMapping("/update-profile")
+    @Operation(summary = "Update email and password anonymously before login")
+    public ResponseEntity<ApiResponse<Void>> updateProfileAnonymously(@RequestBody java.util.Map<String, String> req) {
+        String currentEmail = req.get("email");
+        String newEmail = req.get("newEmail");
+        String newPassword = req.get("password");
+
+        if (currentEmail == null || currentEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Current email is required"));
+        }
+
+        com.flowsync.entity.User user = userRepository.findByEmail(currentEmail.trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (newEmail != null && !newEmail.trim().isEmpty() && !newEmail.equalsIgnoreCase(currentEmail)) {
+            String normalizedNew = newEmail.trim().toLowerCase();
+            if (userRepository.existsByEmail(normalizedNew)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("New email is already registered"));
+            }
+            user.setEmail(normalizedNew);
+        }
+
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(newPassword));
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated successfully", null));
     }
 }

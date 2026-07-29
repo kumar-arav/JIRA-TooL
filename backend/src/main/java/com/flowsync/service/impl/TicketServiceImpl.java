@@ -29,6 +29,7 @@ public class TicketServiceImpl {
     private final CommentRepository commentRepository;
     private final NotificationRepository notificationRepository;
     private final com.flowsync.service.EmailService emailService;
+    private final com.flowsync.service.NotificationHelper notificationHelper;
 
     public TicketResponse createTicket(CreateTicketRequest req, Long reporterId) {
         Project project = projectRepository.findById(req.getProjectId())
@@ -247,6 +248,9 @@ public class TicketServiceImpl {
                 .initials(u.getInitials())
                 .avatarColor(u.getAvatarColor())
                 .active(u.isActive())
+                .department(u.getDepartment())
+                .position(u.getPosition())
+                .addedByAdmin(u.getAddedByAdmin() != null && u.getAddedByAdmin())
                 .lastLoginTime(u.getLastLoginTime())
                 .lastLogoutTime(u.getLastLogoutTime())
                 .build();
@@ -261,7 +265,7 @@ public class TicketServiceImpl {
                     .recipient(recipient)
                     .relatedTicketId(ticketId)
                     .build();
-            notificationRepository.save(n);
+            notificationHelper.saveNotificationSafe(n);
             com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"NOTIFICATION_RECEIVED\", \"recipientId\": " + recipient.getId() + ", \"title\": \"" + title + "\", \"message\": \"" + message + "\"}");
         } catch (Exception ignored) {}
     }

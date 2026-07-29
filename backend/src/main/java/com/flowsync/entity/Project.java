@@ -40,6 +40,10 @@ public class Project extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    @Column(name = "git_repo")
+    private String gitRepo;
+    private String duration;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private User owner;

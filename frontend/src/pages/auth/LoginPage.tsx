@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '@/store/slices/authSlice'
@@ -18,15 +18,7 @@ const COUNTRY_CODES = [
 ]
 
 const DEFAULT_DEMO_ACCOUNTS: Record<string, { email: string; password: string; name: string; initials: string; color: string }> = {
-  'Admin': { email: 'admin@flowsync.com', password: 'password123', name: 'Admin User', initials: 'AD', color: '#374151' },
-  'Scrum Master': { email: 'sarah.chen@flowsync.com', password: 'password123', name: 'Sarah Chen', initials: 'SC', color: '#7C3AED' },
-  'Project Owner': { email: 'olivia.grant@flowsync.com', password: 'password123', name: 'Olivia Grant', initials: 'OG', color: '#0EA5E9' },
-  'CTO': { email: 'kevin.wu@flowsync.com', password: 'password123', name: 'Kevin Wu', initials: 'KW', color: '#7C3AED' },
-  'VP': { email: 'victor.pace@flowsync.com', password: 'password123', name: 'Victor Pace', initials: 'VP', color: '#8B5CF6' },
-  'Manager': { email: 'rita.patel@flowsync.com', password: 'password123', name: 'Rita Patel', initials: 'RP', color: '#DB2777' },
-  'Developer': { email: 'james.doe@flowsync.com', password: 'password123', name: 'James Doe', initials: 'JD', color: '#0D9488' },
-  'Tester': { email: 'priya.rao@flowsync.com', password: 'password123', name: 'Priya Rao', initials: 'PR', color: '#D97706' },
-  'Trainee': { email: 'dan.okafor@flowsync.com', password: 'password123', name: 'Dan Okafor', initials: 'DO', color: '#94A3B8' },
+  'Admin': { email: 'admin@flowsync.com', password: 'password123', name: 'Admin User', initials: 'AD', color: '#374151' }
 }
 
 export default function LoginPage() {
@@ -48,21 +40,24 @@ export default function LoginPage() {
     return DEFAULT_DEMO_ACCOUNTS
   })
 
-  const [email, setEmail] = useState(() => demoAccounts['Scrum Master'].email)
-  const [password, setPass] = useState('password123')
+  const [email, setEmail] = useState('admin@flowsync.com')
+  const [password, setPass] = useState('')
   const [loading, setLoading] = useState(false)
-  const [selectedRole, setSelectedRole] = useState('Scrum Master')
+  const [selectedRole, setSelectedRole] = useState('Admin')
   const [showPassword, setShowPassword] = useState(false)
   
-  // Steps: 'LOGIN' | 'VERIFY' | 'REGISTER'
-  const [step, setStep] = useState<'LOGIN' | 'VERIFY' | 'REGISTER'>('LOGIN')
+  // Steps: 'LOGIN' | 'VERIFY' | 'REGISTER' | 'CHANGE_PASSWORD'
+  const [step, setStep] = useState<'LOGIN' | 'VERIFY' | 'REGISTER' | 'CHANGE_PASSWORD'>('LOGIN')
+  const [tempAuthData, setTempAuthData] = useState<any>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   // Methods: 'AUTHENTICATOR' | 'SMS' | 'BACKUP'
   const [authMethod, setAuthMethod] = useState<'AUTHENTICATOR' | 'SMS' | 'BACKUP'>('AUTHENTICATOR')
   
   // Digit arrays
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
-  const [expectedMfa, setExpectedMfa] = useState(() => Math.floor(100000 + Math.random() * 900000).toString())
+  const [expectedMfa, setExpectedMfa] = useState('')
   
   // SMS states
   const [countryCode, setCountryCode] = useState('+1')
@@ -93,6 +88,31 @@ export default function LoginPage() {
   // Forgot Password States
   const [showForgotModal, setShowForgotModal] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
+
+  // Edit Login Credentials States
+  const [showEditCredentialsModal, setShowEditCredentialsModal] = useState(false)
+  const [editCurrentEmail, setEditCurrentEmail] = useState('')
+  const [editNewEmail, setEditNewEmail] = useState('')
+  const [editNewPassword, setEditNewPassword] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
+  const [projectRedirect, setProjectRedirect] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const action = params.get('action')
+    const emailParam = params.get('email')
+    const redirectParam = params.get('redirect')
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+    if (action === 'reset-password' && emailParam) {
+      setStep('CHANGE_PASSWORD')
+    }
+    if (redirectParam) {
+      setProjectRedirect(redirectParam)
+    }
+  }, [])
 
   const selectRole = (role: string) => {
     setSelectedRole(role)
@@ -214,31 +234,98 @@ export default function LoginPage() {
     }
   }
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
       return toast.error('Please enter email and password')
     }
-    setDigits(Array(6).fill(''))
-    setExpectedMfa(Math.floor(100000 + Math.random() * 900000).toString())
-    setStep('VERIFY')
+    setLoading(true)
+    try {
+      const res = await api.post('/auth/login', { email, password })
+      const data = res.data.data
+      if (data.mfaRequired) {
+        setDigits(Array(6).fill(''))
+        if (data.mfaCode) {
+          setExpectedMfa(data.mfaCode)
+        } else {
+          setExpectedMfa('')
+        }
+        setStep('VERIFY')
+      } else {
+        if (!data.passwordChanged) {
+          setTempAuthData(null)
+          setStep('CHANGE_PASSWORD')
+        } else {
+          dispatch(setCredentials(data))
+          toast.success(`Welcome back, ${data.user.fullName}! 👋`)
+          navigate(projectRedirect || '/dashboard')
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Login failed. Check your credentials.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const code = digits.join('')
-    if (code !== expectedMfa) {
+    if (expectedMfa && code !== expectedMfa) {
       return toast.error('Code mismatch! Please enter the code shown in the Security token banner.')
     }
     setLoading(true)
     try {
-      const data = await login(email, password, code)
-      dispatch(setCredentials(data))
-      toast.success(`Welcome back, ${data.user.fullName}! 👋`)
-      navigate('/dashboard')
+      const res = await api.post('/auth/login', { email, password, mfaCode: code })
+      const data = res.data.data
+      
+      if (!data.passwordChanged) {
+        setTempAuthData(data)
+        setStep('CHANGE_PASSWORD')
+      } else {
+        dispatch(setCredentials(data))
+        toast.success(`Welcome back, ${data.user.fullName}! 👋`)
+        navigate(projectRedirect || '/dashboard')
+      }
     } catch (err: any) {
-      toast.error('Login failed. Check your credentials.')
+      toast.error(err.response?.data?.message || 'Login failed. Check verification code.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      return toast.error('All fields are required')
+    }
+    if (newPassword !== confirmPassword) {
+      return toast.error('Passwords do not match')
+    }
+    setLoading(true)
+    try {
+      await api.post('/auth/change-password', { email, newPassword, confirmPassword })
+      toast.success('Password changed successfully! You are now logged in. 🎉')
+      
+      // If we had tempAuthData from verification, we can dispatch it and login directly
+      if (tempAuthData) {
+        // Update user state locally so they don't get kicked out
+        const authenticatedUser = { ...tempAuthData, user: { ...tempAuthData.user, passwordChanged: true } }
+        dispatch(setCredentials(authenticatedUser))
+        setTempAuthData(null)
+        setPass('')
+        setNewPassword('')
+        setConfirmPassword('')
+        navigate(projectRedirect || '/dashboard')
+      } else {
+        setPass('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setStep('LOGIN')
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to change password')
     } finally {
       setLoading(false)
     }
@@ -320,13 +407,47 @@ export default function LoginPage() {
     }
   }
 
-  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!forgotEmail.trim()) {
       return toast.error('Please enter a valid email address')
     }
-    toast.success(`Password reset email dispatched to ${forgotEmail}! Check inbox. ✉️`)
-    setShowForgotModal(false)
+    try {
+      await api.post('/auth/forgot-password', { email: forgotEmail })
+      toast.success(`Password reset email dispatched to ${forgotEmail}! Check inbox. ✉️`)
+      setShowForgotModal(false)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch password reset request')
+    }
+  }
+
+  const handleEditCredentialsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editCurrentEmail.trim()) {
+      return toast.error("Current email address is required")
+    }
+
+    setEditSubmitting(true)
+    try {
+      await api.put('/auth/update-profile', {
+        email: editCurrentEmail,
+        newEmail: editNewEmail || undefined,
+        password: editNewPassword || undefined
+      })
+      toast.success("Profile credentials updated successfully! 🎉")
+      setEmail(editNewEmail || editCurrentEmail)
+      if (editNewPassword) {
+        setPass(editNewPassword)
+      }
+      setShowEditCredentialsModal(false)
+      setEditCurrentEmail('')
+      setEditNewEmail('')
+      setEditNewPassword('')
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update credentials")
+    } finally {
+      setEditSubmitting(false)
+    }
   }
 
   return (
@@ -383,49 +504,7 @@ export default function LoginPage() {
       {/* RIGHT PANEL: Login form area */}
       <div className="flex-1 flex flex-col justify-between p-8 md:p-12 relative bg-[#F4F5F7]">
         
-        {/* Horizontal Demo Switcher Bar */}
-        <div className="max-w-[480px] w-full mx-auto bg-white/80 border border-slate-200 rounded-lg p-2.5 shadow-sm text-left">
-          <div className="flex justify-between items-center mb-1.5">
-            <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide">Profile Access</div>
-            <button
-              type="button"
-              onClick={handleRestoreDefaults}
-              className="text-[9px] font-bold text-red-500 hover:text-red-700 bg-transparent border-0 cursor-pointer p-0"
-              title="Restore all demo accounts to default names and emails"
-            >
-              Restore Defaults 🔄
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {ROLES.map(role => (
-              <div key={role} className="flex items-center gap-0.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 transition-colors">
-                <button
-                  type="button"
-                  onClick={() => selectRole(role)}
-                  className={`text-[10px] font-bold cursor-pointer border-0 bg-transparent ${selectedRole === role ? 'text-brand' : 'text-slate-600'}`}
-                >
-                  {role}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenamingRole(role)
-                    const acc = demoAccounts[role]
-                    setRenameEmail(acc.email)
-                    setNewEmail(acc.email)
-                    setRenameFirstName(acc.name.split(' ')[0] || '')
-                    setRenameLastName(acc.name.split(' ')[1] || '')
-                    setShowRenameModal(true)
-                  }}
-                  className="text-[9px] text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer p-0.5"
-                  title={`Rename ${role}`}
-                >
-                  ✏️
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+
 
         {/* Login Card Wrapper */}
         <div className="max-w-[400px] w-full mx-auto my-auto py-6">
@@ -503,6 +582,20 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              {/* Edit Profile Credentials Link */}
+              <div className="text-center pt-2 text-[12px]">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEditCurrentEmail(email)
+                    setShowEditCredentialsModal(true)
+                  }} 
+                  className="text-brand hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                >
+                  ✏️ Edit Login Profile (Email/Password)
+                </button>
+              </div>
+
               {/* Create Account Link */}
               <div className="text-center pt-4 border-t border-slate-100 text-[12px] text-slate-500">
                 New to IntelliSprint? <button onClick={() => setStep('REGISTER')} className="text-brand hover:underline font-bold bg-transparent border-0 cursor-pointer">Create an account</button>
@@ -565,24 +658,7 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="field-label text-[10.5px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Select System Role</label>
-                  <select 
-                    value={regRole} 
-                    onChange={e => setRegRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-[13px] text-slate-800 font-semibold focus:outline-none focus:border-brand cursor-pointer"
-                  >
-                    <option value="ADMIN">Admin</option>
-                    <option value="SCRUM_MASTER">Scrum Master</option>
-                    <option value="PROJECT_OWNER">Project Owner</option>
-                    <option value="CTO">CTO</option>
-                    <option value="VP">VP</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="DEVELOPER">Developer</option>
-                    <option value="TESTER">Tester</option>
-                    <option value="TRAINEE">Trainee</option>
-                  </select>
-                </div>
+
 
                 <button 
                   type="submit" 
@@ -630,13 +706,20 @@ export default function LoginPage() {
               <form onSubmit={handleVerificationSubmit} className="space-y-4">
                 <div className="space-y-4">
                   {/* Live banner displaying expected code */}
-                  <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-2.5 flex justify-between items-center">
-                    <div className="text-left">
-                      <span className="text-[10px] font-bold text-amber-800 uppercase block">🔐 Security token</span>
-                      <span className="text-[9.5px] text-amber-600">Enter code below to authorize</span>
+                  {expectedMfa ? (
+                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-2.5 flex justify-between items-center">
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase block">🔐 Security token</span>
+                        <span className="text-[9.5px] text-amber-600">Enter code below to authorize</span>
+                      </div>
+                      <div className="font-mono font-black text-sm tracking-wider bg-white text-slate-800 px-2.5 py-1 rounded border border-amber-200 shadow-sm">{expectedMfa}</div>
                     </div>
-                    <div className="font-mono font-black text-sm tracking-wider bg-white text-slate-800 px-2.5 py-1 rounded border border-amber-200 shadow-sm">{expectedMfa}</div>
-                  </div>
+                  ) : (
+                    <div className="bg-blue-50/50 border border-blue-200/60 rounded-lg p-2.5 text-left">
+                      <span className="text-[10px] font-bold text-blue-800 uppercase block">✉️ Verification Code Sent</span>
+                      <span className="text-[11px] text-blue-600">A 6-digit authentication code has been sent directly to your registered email address.</span>
+                    </div>
+                  )}
 
                   <div className="space-y-2 text-center">
                     <p className="text-[11.5px] text-slate-500 font-semibold">Enter the 6-digit code</p>
@@ -671,8 +754,51 @@ export default function LoginPage() {
 
               {/* Troubleshooting link */}
               <div className="text-center pt-2 text-[11.5px] text-slate-400">
-                Having trouble? <a href="#help" onClick={(e) => { e.preventDefault(); toast(`Current verification token is active: ${expectedMfa}`, { icon: '🔑' }); }} className="text-brand hover:underline font-bold">Get help</a>
+                Having trouble? <a href="#help" onClick={(e) => { e.preventDefault(); toast(`Current verification token is active: ${expectedMfa || 'Sent to email'}`, { icon: '🔑' }); }} className="text-brand hover:underline font-bold">Get help</a>
               </div>
+            </div>
+          )}
+
+          {/* STEP 4: CHANGE PASSWORD CARD */}
+          {step === 'CHANGE_PASSWORD' && (
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-md p-6 md:p-8 space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
+              <div className="text-center space-y-1">
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center mx-auto mb-2 text-white text-sm font-black shadow-sm">🔑</div>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight">Set a New Password</h2>
+                <p className="text-[12.5px] text-slate-500">You are using a temporary password. Please set a secure password to complete sign-in.</p>
+              </div>
+
+              <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="field-label text-[10.5px] font-bold text-slate-500 uppercase tracking-wide block mb-1">New Password</label>
+                  <input 
+                    type="password" 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-[13px] text-slate-850 focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label text-[10.5px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Confirm New Password</label>
+                  <input 
+                    type="password" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-[13px] text-slate-850 focus:outline-none focus:border-brand"
+                    required
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full py-2.5 bg-brand hover:bg-brand/95 text-white text-[12.5px] font-extrabold rounded-md shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-4"
+                >
+                  {loading ? 'Updating Password...' : 'Update Password & Login'}
+                </button>
+              </form>
             </div>
           )}
 
@@ -777,6 +903,81 @@ export default function LoginPage() {
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => setShowForgotModal(false)} className="btn-secondary text-[11px] py-1.5">Cancel</button>
                 <button type="submit" className="btn-primary text-[11px] py-1.5">Send Reset Link</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Login Credentials Modal */}
+      {showEditCredentialsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150 border border-slate-200">
+            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
+              <h3 className="font-bold text-xs tracking-wide">✏️ Edit Login Credentials</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowEditCredentialsModal(false)} 
+                className="text-slate-400 hover:text-white text-xs font-bold bg-transparent border-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditCredentialsSubmit} className="p-5 space-y-4">
+              <div className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2.5 rounded border border-slate-100">
+                Modify the email address and password of any account before authenticating.
+              </div>
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">CURRENT EMAIL ADDRESS *</label>
+                <input
+                  type="email"
+                  className="field-input text-xs"
+                  placeholder="e.g. admin@flowsync.com"
+                  value={editCurrentEmail}
+                  onChange={e => setEditCurrentEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">NEW EMAIL ADDRESS (OPTIONAL)</label>
+                <input
+                  type="email"
+                  className="field-input text-xs"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editNewEmail}
+                  onChange={e => setEditNewEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="field-label text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">NEW PASSWORD (OPTIONAL)</label>
+                <input
+                  type="password"
+                  className="field-input text-xs"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editNewPassword}
+                  onChange={e => setEditNewPassword(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowEditCredentialsModal(false)} 
+                  className="btn-secondary text-[11px] py-1.5"
+                  disabled={editSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary text-[11px] py-1.5"
+                  disabled={editSubmitting}
+                >
+                  {editSubmitting ? 'Saving...' : 'Save Credentials'}
+                </button>
               </div>
             </form>
           </div>

@@ -11,7 +11,11 @@ public class UserResponse {
     private String role;
     private String initials;
     private String avatarColor;
+    private String department;
+    private String position;
+    private boolean passwordChanged;
     private boolean active;
+    private boolean addedByAdmin;
     private int taskCount;
     private int utilizationPercent;
     private LocalDateTime lastLoginTime;

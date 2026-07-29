@@ -55,6 +55,24 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "last_logout_time")
     private java.time.LocalDateTime lastLogoutTime;
 
+    private String department;
+    private String position;
+
+    @Column(name = "password_changed")
+    @Builder.Default
+    private Boolean passwordChanged = false;
+
+    @Column(name = "added_by_admin")
+    @Builder.Default
+    private Boolean addedByAdmin = false;
+
+    public boolean isPasswordChanged() {
+        return passwordChanged != null && passwordChanged;
+    }
+
+    @Column(name = "temp_mfa_code")
+    private String tempMfaCode;
+
     // Relationships
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     @Builder.Default

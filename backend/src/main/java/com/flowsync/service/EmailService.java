@@ -1,31 +1,81 @@
 package com.flowsync.service;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
+
     private final JavaMailSender mailSender;
 
-    public void sendEmail(String to, String replyTo, String subject, String text) {
+    /** The SMTP account — Gmail authenticated sender, always used as From address */
+    private final String smtpAccount;
+
+    public EmailService(JavaMailSender mailSender,
+                        @Value("${spring.mail.username}") String smtpAccount) {
+        this.mailSender = mailSender;
+        this.smtpAccount = smtpAccount;
+    }
+
+    /**
+     * Send an email from admin / user actions.
+     * Gmail requires From = authenticated SMTP account.
+     * The action-doer's email is shown as the display name + set as Reply-To.
+     *
+     * @param to          recipient email
+     * @param senderEmail the person performing the action (admin email, etc.)
+     * @param subject     email subject
+     * @param text        plain-text body
+     */
+    public void sendEmail(String to, String senderEmail, String subject, String text) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            if (replyTo != null && !replyTo.isEmpty()) {
-                message.setFrom(replyTo);
-                message.setReplyTo(replyTo);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text, false);
+
+            if (senderEmail != null && !senderEmail.trim().isEmpty()) {
+                // Use sender's email as display name so recipient sees "From: sender@domain via gmail"
+                // Reply-To is set so replies go to the actual admin/user
+                String displayName = senderEmail.trim();
+                helper.setFrom(new InternetAddress(smtpAccount, displayName));
+                helper.setReplyTo(senderEmail.trim());
+            } else {
+                helper.setFrom(new InternetAddress(smtpAccount, "FlowSync System"));
             }
-            message.setSubject(subject);
-            message.setText(text);
-            mailSender.send(message);
-            log.info("Email sent successfully to: {}", to);
+
+            mailSender.send(mimeMessage);
+            log.info("Email sent to {} (on behalf of: {})", to, senderEmail);
+
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    /**
+     * Send a system-only email (MFA codes, password reset, etc.)
+     * Always from the SMTP account with no custom sender.
+     */
+    public void sendSystemEmail(String to, String subject, String text) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text, false);
+            helper.setFrom(new InternetAddress(smtpAccount, "FlowSync System"));
+            mailSender.send(mimeMessage);
+            log.info("System email sent to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send system email to {}: {}", to, e.getMessage());
         }
     }
 }

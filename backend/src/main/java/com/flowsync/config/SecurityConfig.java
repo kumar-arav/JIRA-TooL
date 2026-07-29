@@ -55,12 +55,8 @@ public class SecurityConfig {
                     "/favicon.svg",
                     "/login",
                     "/dashboard",
-                    "/projects/**",
-                    "/sprints/**",
                     "/ai",
                     "/resources",
-                    "/kanban",
-                    "/tickets/**",
                     "/notifications",
                     "/api/auth/**",
                     "/v3/api-docs/**",
@@ -72,6 +68,7 @@ public class SecurityConfig {
                     "/ws/**"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/projects/**").hasAnyRole("ADMIN", "SCRUM_MASTER", "PROJECT_OWNER", "DEVELOPER", "TESTER", "TRAINEE", "CTO", "VP", "MANAGER")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )

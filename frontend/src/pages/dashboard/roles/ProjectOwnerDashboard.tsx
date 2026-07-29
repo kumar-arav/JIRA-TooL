@@ -209,17 +209,32 @@ export default function ProjectOwnerDashboard({ data }: { data: DashboardData })
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Section title="Portfolio Delivery Timeline" sub="Progress percentage across workspace projects">
           <div className="space-y-3 py-1">
-            {projects.map(p => (
-              <div key={p.id} className="flex items-center gap-3">
-                <span className="text-sm">{p.emoji}</span>
-                <Link to={`/projects/${p.id}`} className="w-32 text-[12px] font-bold text-slate-700 truncate hover:text-blue-600">{p.name}</Link>
-                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-blue-500" style={{ width:`${p.progressPercent}%` }} />
+            {projects.map(p => {
+              const hasAccess = currentUser?.role === 'ADMIN' || 
+                                p.members?.some(m => m.id === currentUser?.id) || 
+                                p.owner?.id === currentUser?.id;
+              return (
+                <div key={p.id} className="flex items-center gap-3">
+                  <span className="text-sm">{p.emoji}</span>
+                  {hasAccess ? (
+                    <Link to={`/projects/${p.id}`} className="w-32 text-[12px] font-bold text-slate-700 truncate hover:text-blue-600">{p.name}</Link>
+                  ) : (
+                    <span 
+                      onClick={() => toast.error("Offline Mode: You are not a member of this project and cannot access it.")}
+                      className="w-32 text-[12px] font-bold text-slate-400 truncate cursor-not-allowed flex items-center gap-1"
+                      title="Offline Mode"
+                    >
+                      🔒 {p.name}
+                    </span>
+                  )}
+                  <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width:`${p.progressPercent}%` }} />
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-500 w-10 text-right">{p.progressPercent}%</span>
+                  <span className={`tag text-[8px] ${p.status==='ACTIVE'?'tag-blue':p.status==='COMPLETED'?'tag-green':'tag-amber'}`}>{p.status}</span>
                 </div>
-                <span className="text-[11px] font-bold text-slate-500 w-10 text-right">{p.progressPercent}%</span>
-                <span className={`tag text-[8px] ${p.status==='ACTIVE'?'tag-blue':p.status==='COMPLETED'?'tag-green':'tag-amber'}`}>{p.status}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Section>
 

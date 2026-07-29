@@ -14,6 +14,8 @@ public class ProjectResponse {
     private String priority;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String gitRepo;
+    private String duration;
     private UserResponse owner;
     private List<UserResponse> members;
     private int totalTickets;
