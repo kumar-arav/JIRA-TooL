@@ -197,6 +197,15 @@ public class TicketServiceImpl {
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", id)));
     }
 
+    public void deleteTicket(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", id));
+        ticketRepository.delete(ticket);
+        try {
+            com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\"}");
+        } catch (Exception ignored) {}
+    }
+
     // ── Mappers ──────────────────────────────────────────────────────────────
 
     public TicketResponse mapToResponse(Ticket t) {

@@ -47,13 +47,18 @@ export default function CreateTicketModal({
   useEffect(() => {
     if (selectedProjectId) {
       getSprintsByProject(selectedProjectId)
-        .then(setSprints)
+        .then(ss => {
+          setSprints(ss)
+          if (defaultSprintId && ss.some(s => s.id === defaultSprintId)) {
+            setSelectedSprintId(defaultSprintId)
+          }
+        })
         .catch(() => toast.error('Failed to load sprints for selected project'))
     } else {
       setSprints([])
       setSelectedSprintId('')
     }
-  }, [selectedProjectId])
+  }, [selectedProjectId, defaultSprintId])
 
   if (!isOpen) return null
 

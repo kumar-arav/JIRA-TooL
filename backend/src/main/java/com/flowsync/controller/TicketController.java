@@ -59,4 +59,10 @@ public class TicketController {
     public ResponseEntity<ApiResponse<CommentResponse>> addComment(@PathVariable Long id, @Valid @RequestBody CommentRequest req, @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.addComment(id, req, user.getId())));
     }
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER','SCRUM_MASTER')")
+    public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
+        ticketService.deleteTicket(id);
+        return ResponseEntity.ok(ApiResponse.ok("Ticket deleted successfully", null));
+    }
 }

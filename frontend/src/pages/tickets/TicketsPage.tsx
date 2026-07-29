@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProjects } from '@/api/projects'
-import { getTicketsByProject } from '@/api/tickets'
+import { getTicketsByProject, deleteTicket } from '@/api/tickets'
 import { Project, Ticket, PRIORITY_TAG, STATUS_TAG } from '@/types'
 import { Search, Filter } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function TicketsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -12,6 +13,17 @@ export default function TicketsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+
+  const handleDeleteTicket = async (id: number) => {
+    if (!window.confirm("Are you sure you want to permanently delete this ticket?")) return
+    try {
+      await deleteTicket(id)
+      setTickets(prev => prev.filter(t => t.id !== id))
+      toast.success("Ticket deleted successfully! 🗑️")
+    } catch {
+      toast.error("Failed to delete ticket")
+    }
+  }
 
   useEffect(() => {
     getProjects().then(ps => { setProjects(ps); if (ps.length) setSelProject(ps[0].id) })
@@ -60,6 +72,7 @@ export default function TicketsPage() {
               <th className="table-header">Assignee</th>
               <th className="table-header">Points</th>
               <th className="table-header">Due</th>
+              <th className="table-header text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -74,6 +87,18 @@ export default function TicketsPage() {
                 </td>
                 <td className="table-cell"><span className="text-[10px] font-bold text-blue-600">{t.storyPoints}sp</span></td>
                 <td className="table-cell text-[11px] text-slate-500">{t.dueDate}</td>
+                <td className="table-cell text-center">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTicket(t.id);
+                    }}
+                    className="p-1 text-slate-400 hover:text-red-650 bg-transparent border-0 cursor-pointer font-bold text-xs"
+                    title="Delete Ticket"
+                  >
+                    🗑️
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
