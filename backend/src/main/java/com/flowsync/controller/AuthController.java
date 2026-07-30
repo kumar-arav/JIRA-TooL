@@ -83,7 +83,7 @@ public class AuthController {
                     "Profile Email Updated - FlowSync",
                     "Hello " + user.getFullName() + ",\n\n" +
                     "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
-                    "Best regards,\nFlowSync Team"
+                    "Best regards,\nSorim Team"
                 );
             } catch (Exception e) {
                 // Log exception silently
@@ -287,7 +287,7 @@ public class AuthController {
                     "User Password Reset Update",
                     "Hello " + adm.getFullName() + ",\n\n" +
                     "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has updated their account password.\n\n" +
-                    "Best regards,\nFlowSync Team"
+                    "Best regards,\nSorim Team"
                 );
             }
         } catch (Exception ignored) {}
@@ -314,7 +314,7 @@ public class AuthController {
                     "Hello " + user.getFullName() + ",\n\n" +
                     "We received a request to reset your password. Click the link below to proceed:\n\n" +
                     resetUrl + "\n\n" +
-                    "Best regards,\nFlowSync Team"
+                    "Best regards,\nSorim Team"
                 );
             } catch (Exception e) {
                 // Ignore email failure in response but log it

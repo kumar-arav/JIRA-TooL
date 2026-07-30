@@ -135,7 +135,7 @@ public class TicketServiceImpl {
                     "You can view the ticket here: " + ticketUrl + "\n\n" +
                     "Kindly update and complete it as needed.\n\n" +
                     "Best regards,\n" +
-                    "FlowSync Team"
+                    "Sorim Team"
                 );
             } catch (Exception e) {
                 log.error("Failed to send email to assigned user: {}", e.getMessage());

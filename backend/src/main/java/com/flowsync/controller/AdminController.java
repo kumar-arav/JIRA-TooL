@@ -73,7 +73,8 @@ public class AdminController {
         if (roleStr != null && !roleStr.trim().isEmpty()) {
             try {
                 role = Role.valueOf(roleStr.toUpperCase());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         } else {
             String posLower = position != null ? position.toLowerCase() : "";
             if (posLower.contains("admin")) {
@@ -117,20 +118,21 @@ public class AdminController {
         User savedEmployee = userRepository.save(employee);
 
         // Get current admin's email to send from their address
-        org.springframework.security.core.Authentication authentication =
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
         String adminEmail = authentication != null ? authentication.getName() : null;
 
         // Send Welcome Email
-        String subject = "Welcome to FlowSync - Your Temporary Credentials";
+        String subject = "Welcome to Sorim  - Your Temporary Credentials";
         String body = "Hello " + name + ",\n\n" +
-                "You have been registered as an employee in FlowSync with the role: " + role.name() + " under the " + department + " department.\n\n" +
+                "You have been registered as an employee in Sorim with the role: " + role.name() + " under the "
+                + department + " department.\n\n" +
                 "Here are your temporary login details:\n" +
                 "Email: " + email + "\n" +
                 "Temporary Password: " + tempPassword + "\n\n" +
                 "You will be prompted to change this password during your first login.\n\n" +
                 "Best regards,\n" +
-                "FlowSync Team";
+                "Sorim Team";
 
         try {
             emailService.sendEmail(email, adminEmail, subject, body);
@@ -141,9 +143,9 @@ public class AdminController {
         // Broadcast user addition via websocket
         try {
             com.flowsync.config.WebSocketConfiguration.broadcast(
-                    "{\"type\": \"USER_REGISTERED\", \"user\": \"" + email + "\", \"role\": \"" + role.name() + "\"}"
-            );
-        } catch (Exception ignored) {}
+                    "{\"type\": \"USER_REGISTERED\", \"user\": \"" + email + "\", \"role\": \"" + role.name() + "\"}");
+        } catch (Exception ignored) {
+        }
 
         UserResponse res = ticketService.mapUser(savedEmployee);
         return ResponseEntity.ok(ApiResponse.ok("Employee registered successfully", res));
@@ -158,8 +160,8 @@ public class AdminController {
         }
         String normalizedNew = newEmail.trim().toLowerCase();
 
-        org.springframework.security.core.Authentication authentication =
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
         String currentAdminEmail = authentication.getName();
 
         User admin = userRepository.findByEmail(currentAdminEmail)
@@ -176,10 +178,10 @@ public class AdminController {
         if (!savedAdmin.isPasswordChanged()) {
             try {
                 java.nio.file.Files.writeString(
-                    java.nio.file.Path.of("admin_credentials.txt"),
-                    "Admin Email: " + newEmail + "\nTemporary Password: (Retained previous temp password)\n"
-                );
-            } catch (Exception ignored) {}
+                        java.nio.file.Path.of("admin_credentials.txt"),
+                        "Admin Email: " + newEmail + "\nTemporary Password: (Retained previous temp password)\n");
+            } catch (Exception ignored) {
+            }
         }
 
         UserResponse res = ticketService.mapUser(savedAdmin);
@@ -240,10 +242,10 @@ public class AdminController {
         // Trigger deactivation email to the person being deleted
         try {
             emailService.sendSystemEmail(
-                employee.getEmail(),
-                "IntelliSprint Account Deactivation",
-                "Hello " + employee.getFullName() + ",\n\nThis is to inform you that your IntelliSprint account has been removed/deleted by the System Administrator.\n\nYou will no longer be able to log in or access your dashboard.\n\nBest regards,\nFlowSync Team"
-            );
+                    employee.getEmail(),
+                    "IntelliSprint Account Deactivation",
+                    "Hello " + employee.getFullName()
+                            + ",\n\nThis is to inform you that your IntelliSprint account has been removed/deleted by the System Administrator.\n\nYou will no longer be able to log in or access your dashboard.\n\nBest regards,\nSorim Team");
         } catch (Exception e) {
             log.warn("Failed to send deactivation email to {}: {}", employee.getEmail(), e.getMessage());
         }
@@ -252,9 +254,10 @@ public class AdminController {
 
         try {
             com.flowsync.config.WebSocketConfiguration.broadcast(
-                    "{\"type\": \"USER_REGISTERED\", \"user\": \"" + employee.getEmail() + "\", \"action\": \"DELETED\"}"
-            );
-        } catch (Exception ignored) {}
+                    "{\"type\": \"USER_REGISTERED\", \"user\": \"" + employee.getEmail()
+                            + "\", \"action\": \"DELETED\"}");
+        } catch (Exception ignored) {
+        }
 
         return ResponseEntity.ok(ApiResponse.ok("Employee deleted successfully", null));
     }

@@ -100,7 +100,7 @@ public class SprintServiceImpl {
             String body = "Hello " + manager.getFullName() + ",\n\n" +
                           "The sprint '" + sprint.getName() + "' for project '" + sprint.getProject().getName() + "' has been " + action + " by " + updaterName + ".\n\n" +
                           "Best regards,\n" +
-                          "FlowSync Team";
+                          "Sorim Team";
             try {
                 emailService.sendEmail(manager.getEmail(), updaterEmail, subject, body);
             } catch (Exception e) {

@@ -67,7 +67,7 @@ public class UserController {
                         "Hello " + adm.getFullName() + ",\n\n" +
                         "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has updated their security credentials (username/password).\n\n" +
                         "All future system notifications and access info for this user will now be sent to their updated email address: " + user.getEmail() + ".\n\n" +
-                        "Best regards,\nFlowSync Team"
+                        "Best regards,\nSorim Team"
                     );
                 }
             } catch (Exception ignored) {}
@@ -85,7 +85,7 @@ public class UserController {
                     "Hello " + user.getFullName() + ",\n\n" +
                     "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
                     roleText + "\n\n" +
-                    "Best regards,\nFlowSync Team"
+                    "Best regards,\nSorim Team"
                 );
             } catch (Exception ignored) {}
         }

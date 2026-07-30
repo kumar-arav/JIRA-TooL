@@ -62,7 +62,7 @@ public class AuthServiceImpl {
                     "Email: " + normalizedEmail + "\n" +
                     "Password: " + req.getPassword() + "\n\n" +
                     "Best regards,\n" +
-                    "FlowSync Team";
+                    "Sorim Team";
             try {
                 emailService.sendEmail(normalizedEmail, adminEmail, subject, body);
             } catch (Exception ignored) {}
@@ -103,7 +103,7 @@ public class AuthServiceImpl {
                 emailService.sendSystemEmail(
                     user.getEmail(),
                     "IntelliSprint Verification Code",
-                    "Hello " + user.getFullName() + ",\n\nYour IntelliSprint verification code is: " + code + "\n\nDo not share this code with anyone.\n\nBest regards,\nFlowSync Team"
+                    "Hello " + user.getFullName() + ",\n\nYour IntelliSprint verification code is: " + code + "\n\nDo not share this code with anyone.\n\nBest regards,\nSorim Team"
                 );
             } catch (Exception e) {
                 // Ignore email failure in response but log it

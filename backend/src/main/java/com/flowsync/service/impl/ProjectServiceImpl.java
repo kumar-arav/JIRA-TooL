@@ -199,7 +199,7 @@ public class ProjectServiceImpl {
                       sprintInfo.toString() + "\n" +
                       "You will be able to view and manage contents only for the projects you are part of.\n\n" +
                       "Best regards,\n" +
-                      "FlowSync Team";
+                      "Sorim Team";
         try {
             emailService.sendEmail(user.getEmail(), addedByEmail, subject, body);
         } catch (Exception e) {
@@ -232,7 +232,7 @@ public class ProjectServiceImpl {
             String body = "Hello " + user.getFullName() + ",\n\n" +
                           "You have been removed from the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + removedByName + ".\n\n" +
                           "Best regards,\n" +
-                          "FlowSync Team";
+                          "Sorim Team";
             try {
                 emailService.sendEmail(user.getEmail(), removedByEmail, subject, body);
             } catch (Exception e) {
