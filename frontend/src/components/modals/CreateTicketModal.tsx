@@ -49,7 +49,7 @@ export default function CreateTicketModal({
       getSprintsByProject(selectedProjectId)
         .then(ss => {
           setSprints(ss)
-          if (defaultSprintId && ss.some(s => s.id === defaultSprintId)) {
+          if (defaultSprintId && ss.some((s: { id: number }) => s.id === defaultSprintId)) {
             setSelectedSprintId(defaultSprintId)
           }
         })

@@ -14,11 +14,13 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    /** The SMTP account — Gmail authenticated sender, always used as From address */
+    /**
+     * The SMTP account — Gmail authenticated sender, always used as From address
+     */
     private final String smtpAccount;
 
     public EmailService(JavaMailSender mailSender,
-                        @Value("${spring.mail.username}") String smtpAccount) {
+            @Value("${spring.mail.username}") String smtpAccount) {
         this.mailSender = mailSender;
         this.smtpAccount = smtpAccount;
     }
@@ -43,13 +45,14 @@ public class EmailService {
             helper.setText(text, false);
 
             if (senderEmail != null && !senderEmail.trim().isEmpty()) {
-                // Use sender's email as display name so recipient sees "From: sender@domain via gmail"
+                // Use sender's email as display name so recipient sees "From: sender@domain via
+                // gmail"
                 // Reply-To is set so replies go to the actual admin/user
                 String displayName = senderEmail.trim();
                 helper.setFrom(new InternetAddress(smtpAccount, displayName));
                 helper.setReplyTo(senderEmail.trim());
             } else {
-                helper.setFrom(new InternetAddress(smtpAccount, "FlowSync System"));
+                helper.setFrom(new InternetAddress(smtpAccount, "Sorim System"));
             }
 
             mailSender.send(mimeMessage);
@@ -71,7 +74,7 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text, false);
-            helper.setFrom(new InternetAddress(smtpAccount, "FlowSync System"));
+            helper.setFrom(new InternetAddress(smtpAccount, "Sorim System"));
             mailSender.send(mimeMessage);
             log.info("System email sent to {}", to);
         } catch (Exception e) {
