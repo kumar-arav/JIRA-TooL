@@ -86,9 +86,6 @@ export default function ProjectsPage() {
 
             return (
               <Link key={p.id} to={`/projects/${p.id}`} className="card border-emerald-250 bg-emerald-50/10 hover:border-emerald-400 hover:shadow-sm transition-all block relative overflow-hidden">
-                <div className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold flex items-center gap-1 shadow-sm uppercase tracking-wider">
-                  ● Active
-                </div>
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 bg-emerald-50 border border-emerald-100">{p.emoji}</div>
                   <div className="flex-1 min-w-0">
