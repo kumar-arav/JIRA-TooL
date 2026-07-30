@@ -27,7 +27,7 @@ public class AuthServiceImpl {
     public AuthResponse register(RegisterRequest req) {
         String normalizedEmail = req.getEmail() != null ? req.getEmail().trim().toLowerCase() : "";
         if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new IllegalArgumentException("Email already registered: " + normalizedEmail);
+            throw new IllegalArgumentException("Email already exists");
         }
 
         boolean addedByAdmin = false;
@@ -65,6 +65,20 @@ public class AuthServiceImpl {
                     "Sorim Team";
             try {
                 emailService.sendEmail(normalizedEmail, adminEmail, subject, body);
+            } catch (Exception ignored) {}
+
+            // Also notify other admins
+            try {
+                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
+                for (User adm : admins) {
+                    if (!adm.getEmail().equalsIgnoreCase(normalizedEmail)) {
+                        emailService.sendEmail(adm.getEmail(), adminEmail, "[Admin Alert] New User Account Registered", 
+                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
+                            "A new user account has been registered for " + req.getFirstName() + " " + req.getLastName() + " (" + normalizedEmail + ") with the role: " + user.getRole().name() + " by " + (adminEmail != null ? adminEmail : "System") + ".\n\n" +
+                            "Best regards,\nSorim Team"
+                        );
+                    }
+                }
             } catch (Exception ignored) {}
         }
 

@@ -140,6 +140,20 @@ public class TicketServiceImpl {
             } catch (Exception e) {
                 log.error("Failed to send email to assigned user: {}", e.getMessage());
             }
+
+            // Also notify all admins
+            try {
+                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
+                for (User adm : admins) {
+                    if (!adm.getEmail().equalsIgnoreCase(newAssignee.getEmail())) {
+                        emailService.sendEmail(adm.getEmail(), assignedByEmail, "[Admin Alert] Ticket Assigned: " + ticket.getTicketKey(),
+                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
+                            "This is to notify you that the ticket '" + ticket.getTitle() + "' (" + ticket.getTicketKey() + ") has been assigned/transferred to " + newAssignee.getFullName() + " (" + newAssignee.getEmail() + ") by " + assignedByName + ".\n\n" +
+                            "Best regards,\nSorim Team"
+                        );
+                    }
+                }
+            } catch (Exception ignored) {}
         }
         return res;
     }
