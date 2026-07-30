@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProjects } from '@/api/projects'
 import { getTicketsByProject, deleteTicket } from '@/api/tickets'
-import { Project, Ticket, PRIORITY_TAG, STATUS_TAG } from '@/types'
+import { getSprintsByProject } from '@/api/sprints'
+import { Project, Ticket, Sprint, PRIORITY_TAG, STATUS_TAG } from '@/types'
 import { Search, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -10,6 +11,8 @@ export default function TicketsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [selProject, setSelProject] = useState(0)
+  const [sprints, setSprints] = useState<Sprint[]>([])
+  const [sprintFilter, setSprintFilter] = useState<number | ''>('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
@@ -30,13 +33,18 @@ export default function TicketsPage() {
   }, [])
 
   useEffect(() => {
-    if (selProject) getTicketsByProject(selProject).then(setTickets)
+    if (selProject) {
+      getTicketsByProject(selProject).then(setTickets)
+      getSprintsByProject(selProject).then(setSprints).catch(() => {})
+      setSprintFilter('')
+    }
   }, [selProject])
 
   const filtered = tickets.filter(t =>
     (!search || t.title.toLowerCase().includes(search.toLowerCase()) || t.ticketKey.includes(search.toUpperCase())) &&
     (!statusFilter || t.status === statusFilter) &&
-    (!priorityFilter || t.priority === priorityFilter)
+    (!priorityFilter || t.priority === priorityFilter) &&
+    (sprintFilter === '' || t.sprintId === sprintFilter)
   )
 
   return (
@@ -59,6 +67,10 @@ export default function TicketsPage() {
         <select className="field-input w-32 text-[12px]" value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
           <option value="">All Priority</option>
           {['CRITICAL','HIGH','MEDIUM','LOW'].map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select className="field-input w-36 text-[12px]" value={sprintFilter} onChange={e => setSprintFilter(e.target.value ? Number(e.target.value) : '')}>
+          <option value="">All Sprints</option>
+          {sprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
       <div className="card overflow-hidden p-0">
