@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { Link } from 'react-router-dom'
+import { wsClient } from '@/utils/websocket'
 
 interface SprintDetailModalProps {
   isOpen: boolean
@@ -81,6 +82,17 @@ export default function SprintDetailModal({
       loadSprint()
       loadAvailableTickets()
     }
+  }, [isOpen, sprintId])
+
+  useEffect(() => {
+    if (!isOpen || !sprintId) return
+    const unsubscribe = wsClient.subscribe((evt) => {
+      if (evt.type === 'TICKET_UPDATED' || evt.type === 'SPRINT_UPDATED') {
+        loadSprint()
+        loadAvailableTickets()
+      }
+    })
+    return () => unsubscribe()
   }, [isOpen, sprintId])
 
   if (!isOpen || !sprint) return null
