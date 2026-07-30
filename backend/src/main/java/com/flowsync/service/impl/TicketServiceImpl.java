@@ -114,11 +114,11 @@ public class TicketServiceImpl {
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
 
         if (newAssignee != null) {
+            String assignedByName = "the system administrator";
+            String assignedByEmail = null;
             try {
                 // Get currently logged-in user who made the change
                 org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-                String assignedByName = "the system administrator";
-                String assignedByEmail = null;
                 if (auth != null && auth.getPrincipal() instanceof User) {
                     User currentUser = (User) auth.getPrincipal();
                     assignedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";

@@ -313,7 +313,8 @@ public class ProjectServiceImpl {
             project.setOwner(owner);
             if (!project.getMembers().contains(owner)) {
                 project.getMembers().add(owner);
-                       // Send notification email to the new Owner if it was updated/changed
+            }
+            // Send notification email to the new Owner if it was updated/changed
             if (oldOwner == null || !oldOwner.getId().equals(owner.getId())) {
                 String projectUrl = "http://localhost:3000/login?email=" + owner.getEmail() + "&redirect=/projects/" + project.getId();
                 String subject = "Assigned as Project Owner: " + project.getName();
@@ -372,7 +373,7 @@ public class ProjectServiceImpl {
                     }
                 } catch (Exception ignored) {}
             }
-        }     }
+        }
 
         Project saved = projectRepository.save(project);
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
