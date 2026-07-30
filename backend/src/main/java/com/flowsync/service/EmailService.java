@@ -45,11 +45,8 @@ public class EmailService {
             helper.setText(text, false);
 
             if (senderEmail != null && !senderEmail.trim().isEmpty()) {
-                // Use sender's email as display name so recipient sees "From: sender@domain via
-                // gmail"
-                // Reply-To is set so replies go to the actual admin/user
-                String displayName = senderEmail.trim();
-                helper.setFrom(new InternetAddress(smtpAccount, displayName));
+                // Set the From address directly to the action-doer's email (e.g. Admin 2)
+                helper.setFrom(new InternetAddress(senderEmail.trim()));
                 helper.setReplyTo(senderEmail.trim());
             } else {
                 helper.setFrom(new InternetAddress(smtpAccount, "Sorim System"));
