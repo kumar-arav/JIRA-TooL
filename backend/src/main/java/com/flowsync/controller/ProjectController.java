@@ -44,4 +44,9 @@ public class ProjectController {
         projectService.deleteProject(id);
         return ResponseEntity.ok(ApiResponse.ok("Project deleted", null));
     }
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER','SCRUM_MASTER')")
+    public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(@PathVariable Long id, @Valid @RequestBody CreateProjectRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(projectService.updateProject(id, req)));
+    }
 }

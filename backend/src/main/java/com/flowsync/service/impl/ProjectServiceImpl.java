@@ -248,6 +248,83 @@ public class ProjectServiceImpl {
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
     }
 
+    public ProjectResponse updateProject(Long id, CreateProjectRequest req) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+        
+        User oldOwner = project.getOwner();
+
+        project.setName(req.getName());
+        project.setProjectKey(req.getProjectKey());
+        project.setDescription(req.getDescription());
+        project.setEmoji(req.getEmoji() != null ? req.getEmoji() : "📁");
+        if (req.getStatus() != null) {
+            project.setStatus(req.getStatus());
+        }
+        if (req.getPriority() != null) {
+            project.setPriority(req.getPriority());
+        }
+        project.setStartDate(req.getStartDate());
+        project.setEndDate(req.getEndDate());
+        project.setGitRepo(req.getGitRepo());
+        project.setDuration(req.getDuration());
+
+        // Resolve current admin / user performing the edit
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String updaterName = "the project administrator";
+        String updaterEmail = null;
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            updaterName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            updaterEmail = currentUser.getEmail();
+        }
+
+        if (req.getOwnerId() != null) {
+            User owner = userRepository.findById(req.getOwnerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getOwnerId()));
+            project.setOwner(owner);
+            if (!project.getMembers().contains(owner)) {
+                project.getMembers().add(owner);
+            }
+
+            // Send notification email to the new Owner if it was updated/changed
+            if (oldOwner == null || !oldOwner.getId().equals(owner.getId())) {
+                String projectUrl = "http://localhost:3000/login?email=" + owner.getEmail() + "&redirect=/projects/" + project.getId();
+                String subject = "Assigned as Project Owner: " + project.getName();
+                String body = "Hello " + owner.getFullName() + ",\n\n" +
+                              "You have been assigned as the Project Owner for the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + updaterName + ".\n\n" +
+                              "You can view and access the project here: " + projectUrl + "\n\n" +
+                              "Best regards,\nSorim Team";
+                try {
+                    emailService.sendEmail(owner.getEmail(), updaterEmail, subject, body);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (req.getScrumMasterId() != null) {
+            User sm = userRepository.findById(req.getScrumMasterId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getScrumMasterId()));
+            if (!project.getMembers().contains(sm)) {
+                project.getMembers().add(sm);
+
+                // Send notification email to the new Scrum Master
+                String projectUrl = "http://localhost:3000/login?email=" + sm.getEmail() + "&redirect=/projects/" + project.getId();
+                String subject = "Assigned as Scrum Master: " + project.getName();
+                String body = "Hello " + sm.getFullName() + ",\n\n" +
+                              "You have been added and assigned as the Scrum Master for the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + updaterName + ".\n\n" +
+                              "You can view and access the project here: " + projectUrl + "\n\n" +
+                              "Best regards,\nSorim Team";
+                try {
+                    emailService.sendEmail(sm.getEmail(), updaterEmail, subject, body);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        Project saved = projectRepository.save(project);
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
+        return mapToResponse(saved);
+    }
+
     private ProjectResponse mapToResponse(Project p) {
         List<UserResponse> members = p.getMembers().stream()
                 .map(ticketService::mapUser).collect(Collectors.toList());
