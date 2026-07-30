@@ -46,7 +46,7 @@ spring:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:FlowSyncSuperSecretKeyForJWTTokenSigningMustBe256BitsLongAtLeast2024}
-  expiration: 604800000        # 7 days in ms
+  expiration: 604800000 # 7 days in ms
   refresh-expiration: 2592000000 # 30 days in ms
 
 # App Configuration
@@ -84,6 +84,6 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
   info:
-    title: FlowSync API
+    title: Intellisprint API
     version: 1.0.0
     description: AI-Powered Project Management & Ticketing System API
