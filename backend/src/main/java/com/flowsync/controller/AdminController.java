@@ -237,6 +237,17 @@ public class AdminController {
         // 4. Delete notifications sent to the user
         notificationRepository.deleteByRecipient_Id(id);
 
+        // Trigger deactivation email to the person being deleted
+        try {
+            emailService.sendSystemEmail(
+                employee.getEmail(),
+                "IntelliSprint Account Deactivation",
+                "Hello " + employee.getFullName() + ",\n\nThis is to inform you that your IntelliSprint account has been removed/deleted by the System Administrator.\n\nYou will no longer be able to log in or access your dashboard.\n\nBest regards,\nFlowSync Team"
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send deactivation email to {}: {}", employee.getEmail(), e.getMessage());
+        }
+
         userRepository.delete(employee);
 
         try {
