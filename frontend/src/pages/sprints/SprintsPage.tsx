@@ -6,6 +6,7 @@ import { Project, Sprint } from '@/types'
 import toast from 'react-hot-toast'
 import { Plus } from 'lucide-react'
 import CreateSprintModal from '@/components/modals/CreateSprintModal'
+import SprintDetailModal from '@/components/modals/SprintDetailModal'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 
@@ -18,6 +19,8 @@ export default function SprintsPage() {
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [selectedProject, setSelectedProject] = useState<number>(parseInt(projectId||'0'))
   const [showSprintModal, setShowSprintModal] = useState(false)
+  const [selectedSprintIdForDetail, setSelectedSprintIdForDetail] = useState<number | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   const user = useSelector((s: RootState) => s.auth.user)
   const canManageSprint = user && ['ADMIN', 'SCRUM_MASTER', 'PROJECT_OWNER'].includes(user.role)
@@ -91,7 +94,7 @@ export default function SprintsPage() {
       {/* Sprint cards */}
       <div className="grid grid-cols-3 gap-3">
         {sprints.map(sp => (
-          <div key={sp.id} className="card-sm" style={{ borderLeft: `3px solid ${STATUS_COLOR[sp.status]}` }}>
+          <div key={sp.id} onClick={() => { setSelectedSprintIdForDetail(sp.id); setShowDetailModal(true); }} className="card-sm cursor-pointer hover:shadow-md transition-shadow" style={{ borderLeft: `3px solid ${STATUS_COLOR[sp.status]}` }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[13px] font-black text-slate-900">{sp.name}</span>
               <span className={`tag ${STATUS_TAG[sp.status]}`}>{sp.status}</span>
@@ -107,10 +110,10 @@ export default function SprintsPage() {
               <span>{sp.progressPercent}%</span>
             </div>
              <div className="flex gap-1 items-center">
-              {canManageSprint && sp.status === 'PLANNED' && <button onClick={() => handleStart(sp.id)} className="btn-primary text-[10px] py-1">Start</button>}
-              {canManageSprint && sp.status === 'ACTIVE' && <button onClick={() => handleComplete(sp.id)} className="btn-secondary text-[10px] py-1">Complete</button>}
+              {canManageSprint && sp.status === 'PLANNED' && <button onClick={(e) => { e.stopPropagation(); handleStart(sp.id); }} className="btn-primary text-[10px] py-1">Start</button>}
+              {canManageSprint && sp.status === 'ACTIVE' && <button onClick={(e) => { e.stopPropagation(); handleComplete(sp.id); }} className="btn-secondary text-[10px] py-1">Complete</button>}
               {canManageSprint && (
-                <button onClick={() => handleDelete(sp.id)} className="ml-auto px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded text-[9.5px] font-semibold cursor-pointer">
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(sp.id); }} className="ml-auto px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded text-[9.5px] font-semibold cursor-pointer">
                   Delete 🗑️
                 </button>
               )}
@@ -124,6 +127,14 @@ export default function SprintsPage() {
         onClose={() => setShowSprintModal(false)} 
         projectId={selectedProject}
         onCreated={fetchSprints} 
+      />
+
+      <SprintDetailModal
+        isOpen={showDetailModal}
+        onClose={() => { setShowDetailModal(false); setSelectedSprintIdForDetail(null); }}
+        sprintId={selectedSprintIdForDetail}
+        projectId={selectedProject}
+        onUpdated={fetchSprints}
       />
     </div>
   )

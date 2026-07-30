@@ -144,6 +144,20 @@ public class TicketServiceImpl {
         return res;
     }
 
+    public TicketResponse updateSprint(Long ticketId, Long sprintId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+        com.flowsync.entity.Sprint sprint = null;
+        if (sprintId != null) {
+            sprint = sprintRepository.findById(sprintId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
+        }
+        ticket.setSprint(sprint);
+        TicketResponse res = mapToResponse(ticketRepository.save(ticket));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
+        return res;
+    }
+
     public TicketResponse approveTester(Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));

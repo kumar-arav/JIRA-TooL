@@ -42,4 +42,9 @@ public class SprintController {
         sprintService.deleteSprint(id);
         return ResponseEntity.ok(ApiResponse.ok("Sprint deleted", null));
     }
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SCRUM_MASTER','PROJECT_OWNER')")
+    public ResponseEntity<ApiResponse<SprintResponse>> updateSprint(@PathVariable Long id, @Valid @RequestBody CreateSprintRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(sprintService.updateSprint(id, req)));
+    }
 }

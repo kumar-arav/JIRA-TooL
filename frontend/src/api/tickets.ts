@@ -10,3 +10,4 @@ export const approveManager = (id: number) => api.put(`/tickets/${id}/approve/ma
 export const addComment = (id: number, content: string) => api.post(`/tickets/${id}/comments`, { content }).then(r => r.data.data)
 export const updateAssignee = (id: number, assigneeId: number | null) => api.put(`/tickets/${id}/assignee`, { assigneeId }).then(r => r.data.data)
 export const deleteTicket = (id: number) => api.delete(`/tickets/${id}`).then(r => r.data.data)
+export const updateTicketSprint = (id: number, sprintId: number | null) => api.put(`/tickets/${id}/sprint`, { sprintId }).then(r => r.data.data)

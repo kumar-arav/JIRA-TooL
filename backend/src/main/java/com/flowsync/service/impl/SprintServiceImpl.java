@@ -119,6 +119,21 @@ public class SprintServiceImpl {
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint", id)));
     }
 
+    public SprintResponse updateSprint(Long id, CreateSprintRequest req) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", id));
+        sprint.setName(req.getName());
+        sprint.setGoal(req.getGoal());
+        sprint.setStartDate(req.getStartDate());
+        sprint.setEndDate(req.getEndDate());
+        if (req.getCapacityPoints() != null) {
+            sprint.setCapacityPoints(req.getCapacityPoints());
+        }
+        SprintResponse resp = mapToResponse(sprintRepository.save(sprint));
+        com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"SPRINT_UPDATED\"}");
+        return resp;
+    }
+
     private SprintResponse mapToResponse(Sprint s) {
         long total    = s.getTickets() != null ? s.getTickets().size() : 0;
         long closed   = s.getTickets() != null ? s.getTickets().stream().filter(t -> t.getStatus() == TicketStatus.CLOSED).count() : 0;
