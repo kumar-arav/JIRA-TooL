@@ -51,7 +51,27 @@ public class UserController {
                 emailChanged = true;
             }
         }
+        boolean passwordChanged = req.containsKey("password") && req.get("password") != null && !req.get("password").trim().isEmpty();
         userRepository.save(user);
+
+        // Notify admins if email or password was updated
+        if (emailChanged || passwordChanged) {
+            try {
+                List<User> admins = userRepository.findAll().stream()
+                        .filter(u -> u.getRole() == com.flowsync.enums.Role.ADMIN)
+                        .collect(Collectors.toList());
+                for (User adm : admins) {
+                    emailService.sendSystemEmail(
+                        adm.getEmail(),
+                        "User Security Credentials Updated",
+                        "Hello " + adm.getFullName() + ",\n\n" +
+                        "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has updated their security credentials (username/password).\n\n" +
+                        "All future system notifications and access info for this user will now be sent to their updated email address: " + user.getEmail() + ".\n\n" +
+                        "Best regards,\nFlowSync Team"
+                    );
+                }
+            } catch (Exception ignored) {}
+        }
 
         if (emailChanged) {
             try {

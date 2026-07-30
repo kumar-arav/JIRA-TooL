@@ -276,6 +276,22 @@ public class AuthController {
         user.setPasswordChanged(true);
         userRepository.save(user);
 
+        // Notify admins about the password update
+        try {
+            java.util.List<com.flowsync.entity.User> admins = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == com.flowsync.enums.Role.ADMIN)
+                    .collect(java.util.stream.Collectors.toList());
+            for (com.flowsync.entity.User adm : admins) {
+                emailService.sendSystemEmail(
+                    adm.getEmail(),
+                    "User Password Reset Update",
+                    "Hello " + adm.getFullName() + ",\n\n" +
+                    "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has updated their account password.\n\n" +
+                    "Best regards,\nFlowSync Team"
+                );
+            }
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(ApiResponse.ok("Password changed successfully", null));
     }
 
