@@ -159,8 +159,8 @@ export default function SprintDetailModal({
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content max-w-4xl w-full p-6 relative">
+    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden p-6 relative animate-in fade-in zoom-in-95 duration-150">
         <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-transparent border-0 cursor-pointer" onClick={onClose}>
           <X size={18} />
         </button>
