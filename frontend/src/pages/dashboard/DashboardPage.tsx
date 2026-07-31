@@ -69,7 +69,7 @@ export default function DashboardPage() {
               <RoleTag role={role} />
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
-              {DASHBOARD_TITLES[role]} · {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {(DASHBOARD_TITLES[role] || (role.replace('_', ' ') + ' Dashboard'))} · {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
