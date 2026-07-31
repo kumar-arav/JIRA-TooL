@@ -22,15 +22,24 @@ public class DataSeeder implements CommandLineRunner {
     private final TicketRepository ticketRepo;
     private final NotificationRepository notifRepo;
     private final PasswordEncoder encoder;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     @Override
     public void run(String... args) {
-        // Only seed on very first boot (empty database).
-        // ALL subsequent restarts leave existing data completely intact.
         boolean firstTimeSeed = userRepo.count() == 0;
 
         if (firstTimeSeed) {
             log.info("First boot detected — seeding Admin user...");
+            try {
+                mongoTemplate.dropCollection(DatabaseSequence.class);
+                projectRepo.deleteAll();
+                sprintRepo.deleteAll();
+                ticketRepo.deleteAll();
+                notifRepo.deleteAll();
+                log.info("Dropped database sequences and collections for fresh seed starting at ID 1.");
+            } catch (Exception e) {
+                log.error("Failed to clean collections: {}", e.getMessage());
+            }
 
             String adminRawPassword = "admin123";
 
