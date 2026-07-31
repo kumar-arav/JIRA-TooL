@@ -124,6 +124,7 @@ public class TicketServiceImpl {
         ticket.setDescription(req.getDescription());
         ticket.setStoryPoints(req.getStoryPoints());
         ticket.setPriority(req.getPriority());
+        ticket.setDueDate(req.getDueDate());
 
         if (req.getSprintId() != null) {
             ticket.setSprint(sprintRepository.findById(req.getSprintId())
