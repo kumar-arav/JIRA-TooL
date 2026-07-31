@@ -110,10 +110,19 @@ export default function TicketsPage() {
                 <td className="table-cell"><span className={`tag ${STATUS_TAG[t.status]} text-[9.5px]`}>{t.status.replace('_',' ')}</span></td>
                 <td className="table-cell"><span className={`tag ${PRIORITY_TAG[t.priority]} text-[9.5px]`}>{t.priority}</span></td>
                 <td className="table-cell">
-                  {t.assignee && <div className="flex items-center gap-1.5"><div className="avatar w-5 h-5 text-[7.5px]" style={{background:t.assignee.avatarColor}}>{t.assignee.initials}</div><span className="text-[11px]">{t.assignee.firstName}</span></div>}
+                  {t.assignee ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="avatar w-5 h-5 text-[7.5px]" style={{background:t.assignee.avatarColor}}>{t.assignee.initials}</div>
+                      <span className="text-[11px]">{t.assignee.firstName} {t.assignee.lastName}</span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 italic text-[11px]">Unassigned</span>
+                  )}
                 </td>
                 <td className="table-cell"><span className="text-[10px] font-bold text-blue-600">{t.storyPoints}sp</span></td>
-                <td className="table-cell text-[11px] text-slate-500">{t.dueDate}</td>
+                <td className="table-cell text-[11px] text-slate-500">
+                  {t.dueDate ? t.dueDate : <span className="text-slate-400 italic text-[11px]">No due date</span>}
+                </td>
                 <td className="table-cell text-center">
                   <button 
                     onClick={(e) => {
