@@ -79,9 +79,13 @@ public class User extends BaseEntity implements UserDetails {
     @Override public boolean isCredentialsNonExpired() { return true; }
     @Override public boolean isEnabled()               { return active; }
 
-    public String getFullName()    { return firstName + " " + lastName; }
-    public String getInitials()    {
-        return (firstName.isEmpty() ? "" : String.valueOf(firstName.charAt(0)))
-             + (lastName.isEmpty()  ? "" : String.valueOf(lastName.charAt(0)));
+    public String getFullName() {
+        return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+    }
+    public String getInitials() {
+        String f = firstName != null ? firstName : "";
+        String l = lastName != null ? lastName : "";
+        return (f.isEmpty() ? "" : String.valueOf(f.charAt(0)))
+             + (l.isEmpty() ? "" : String.valueOf(l.charAt(0)));
     }
 }

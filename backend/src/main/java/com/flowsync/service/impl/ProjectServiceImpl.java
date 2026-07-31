@@ -131,6 +131,9 @@ public class ProjectServiceImpl {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         try {
+            if (project.getMembers() == null) {
+                project.setMembers(new java.util.ArrayList<>());
+            }
             boolean alreadyMember = project.getMembers().stream().anyMatch(m -> m.getId().equals(user.getId()) || m.getEmail().equalsIgnoreCase(user.getEmail()));
             if (!alreadyMember) {
                 project.getMembers().add(user);
