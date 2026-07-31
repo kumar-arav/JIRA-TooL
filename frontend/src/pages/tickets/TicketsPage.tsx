@@ -6,6 +6,7 @@ import { getSprintsByProject } from '@/api/sprints'
 import { Project, Ticket, Sprint, PRIORITY_TAG, STATUS_TAG } from '@/types'
 import { Search, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { wsClient } from '@/utils/websocket'
 
 export default function TicketsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -32,12 +33,26 @@ export default function TicketsPage() {
     getProjects().then(ps => { setProjects(ps); if (ps.length) setSelProject(ps[0].id) })
   }, [])
 
-  useEffect(() => {
+  const fetchTicketsAndSprints = () => {
     if (selProject) {
       getTicketsByProject(selProject).then(setTickets)
       getSprintsByProject(selProject).then(setSprints).catch(() => {})
-      setSprintFilter('')
     }
+  }
+
+  useEffect(() => {
+    fetchTicketsAndSprints()
+    setSprintFilter('')
+  }, [selProject])
+
+  useEffect(() => {
+    if (!selProject) return
+    const unsubscribe = wsClient.subscribe((evt) => {
+      if (evt.type === 'TICKET_UPDATED' || evt.type === 'SPRINT_UPDATED') {
+        fetchTicketsAndSprints()
+      }
+    })
+    return () => unsubscribe()
   }, [selProject])
 
   const filtered = tickets.filter(t =>

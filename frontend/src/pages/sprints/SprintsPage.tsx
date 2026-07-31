@@ -9,6 +9,7 @@ import CreateSprintModal from '@/components/modals/CreateSprintModal'
 import SprintDetailModal from '@/components/modals/SprintDetailModal'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
+import { wsClient } from '@/utils/websocket'
 
 const STATUS_COLOR: Record<string,string> = { PLANNED:'#94A3B8', ACTIVE:'#2563EB', COMPLETED:'#059669', CANCELLED:'#DC2626' }
 const STATUS_TAG: Record<string,string> = { PLANNED:'tag-gray', ACTIVE:'tag-blue', COMPLETED:'tag-green', CANCELLED:'tag-red' }
@@ -38,6 +39,15 @@ export default function SprintsPage() {
 
   useEffect(() => {
     fetchSprints()
+  }, [selectedProject])
+
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe((evt) => {
+      if (evt.type === 'SPRINT_UPDATED' || evt.type === 'TICKET_UPDATED') {
+        fetchSprints()
+      }
+    })
+    return () => unsubscribe()
   }, [selectedProject])
 
   const handleStart = async (id: number) => {
