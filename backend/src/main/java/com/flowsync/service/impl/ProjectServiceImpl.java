@@ -100,20 +100,7 @@ public class ProjectServiceImpl {
     }
 
     public List<ProjectResponse> getAll() {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        String currentEmail = auth != null ? auth.getName() : null;
-        User currentUser = currentEmail != null ? userRepository.findByEmail(currentEmail).orElse(null) : null;
-        
-        List<Project> allProjects = projectRepository.findAll();
-        if (currentUser != null && currentUser.getRole() != com.flowsync.enums.Role.ADMIN) {
-            final User finalUser = currentUser;
-            return allProjects.stream()
-                    .filter(p -> (p.getOwner() != null && p.getOwner().getId().equals(finalUser.getId())) || 
-                                 p.getMembers().stream().anyMatch(m -> m.getId().equals(finalUser.getId()) || m.getEmail().equalsIgnoreCase(finalUser.getEmail())))
-                    .map(this::mapToResponse)
-                    .collect(Collectors.toList());
-        }
-        return allProjects.stream()
+        return projectRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -401,6 +388,26 @@ public class ProjectServiceImpl {
                 ? p.getSprints().stream().filter(s -> s.getStatus().name().equals("COMPLETED")).count() : 0);
         int progress = totalSprints == 0 ? 0 : (completedSprints * 100 / totalSprints);
 
+        boolean hasAccess = false;
+        try {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            String currentEmail = auth != null ? auth.getName() : null;
+            if (currentEmail != null) {
+                User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
+                if (currentUser != null) {
+                    if (currentUser.getRole() == com.flowsync.enums.Role.ADMIN) {
+                        hasAccess = true;
+                    } else {
+                        boolean isOwner = p.getOwner() != null && p.getOwner().getId().equals(currentUser.getId());
+                        boolean isMember = p.getMembers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()) || m.getEmail().equalsIgnoreCase(currentUser.getEmail()));
+                        if (isOwner || isMember) {
+                            hasAccess = true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
         return ProjectResponse.builder()
                 .id(p.getId())
                 .projectKey(p.getProjectKey())
@@ -418,6 +425,7 @@ public class ProjectServiceImpl {
                 .totalTickets(totalTickets)
                 .totalSprints(totalSprints)
                 .progressPercent(progress)
+                .hasAccess(hasAccess)
                 .createdAt(p.getCreatedAt())
                 .build();
     }

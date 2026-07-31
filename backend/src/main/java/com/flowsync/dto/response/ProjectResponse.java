@@ -22,5 +22,6 @@ public class ProjectResponse {
     private int openTickets;
     private int totalSprints;
     private int progressPercent;
+    private boolean hasAccess;
     private LocalDateTime createdAt;
 }

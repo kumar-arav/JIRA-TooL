@@ -14,7 +14,7 @@ import java.util.List;
 public class ProjectController {
     private final ProjectServiceImpl projectService;
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER','SCRUM_MASTER')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER')")
     public ResponseEntity<ApiResponse<ProjectResponse>> create(@Valid @RequestBody CreateProjectRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(projectService.create(req)));
     }

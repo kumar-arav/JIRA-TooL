@@ -15,7 +15,7 @@ export default function ProjectsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   const user = useSelector((s: RootState) => s.auth.user)
-  const canCreateProject = user && ['ADMIN', 'PROJECT_OWNER', 'SCRUM_MASTER'].includes(user.role)
+  const canCreateProject = user && ['ADMIN', 'PROJECT_OWNER'].includes(user.role)
 
   const fetchProjects = () => {
     setLoading(true)
@@ -49,14 +49,15 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-2 gap-4">
           {filtered.map(p => {
             const hasAccess = user?.role === 'ADMIN' || 
-                              p.members.some(m => m.id === user?.id) || 
+                              p.hasAccess ||
+                              p.members?.some((m: any) => m.id === user?.id) || 
                               p.owner?.id === user?.id;
             
             if (!hasAccess) {
               return (
                 <div 
                   key={p.id} 
-                  onClick={() => toast.error("Offline Mode: You are not a member of this project and cannot access it.")}
+                  onClick={() => toast.error("Offline Mode: You are not a member of this project and cannot access it. Please request access from an administrator.")}
                   className="card opacity-60 bg-slate-50 border-slate-200 cursor-not-allowed transition-all block relative overflow-hidden"
                 >
                   <div className="absolute top-2 right-2 bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[8.5px] font-bold flex items-center gap-1 shadow-sm">

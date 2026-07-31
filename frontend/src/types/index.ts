@@ -11,7 +11,7 @@ export interface Project {
   status: string; priority: string; startDate: string; endDate: string;
   gitRepo?: string; duration?: string;
   owner: User; members: User[]; totalTickets: number; openTickets: number;
-  totalSprints: number; progressPercent: number; createdAt: string;
+  totalSprints: number; progressPercent: number; hasAccess?: boolean; createdAt: string;
 }
 
 export interface Sprint {
