@@ -36,6 +36,9 @@ public class ProjectServiceImpl {
     private final NotificationRepository notificationRepository;
     private final NotificationHelper notificationHelper;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
+    private String frontendUrl;
+
     public ProjectResponse create(CreateProjectRequest req) {
         if (projectRepository.existsByProjectKey(req.getProjectKey().toUpperCase())) {
             throw new IllegalArgumentException("Project key already exists: " + req.getProjectKey());
@@ -192,7 +195,8 @@ public class ProjectServiceImpl {
         }
 
         // Send notification email
-        String projectUrl = "http://localhost:3000/login?email=" + user.getEmail() + "&redirect=/projects/" + project.getId();
+        String baseUrl = (frontendUrl != null) ? frontendUrl : "http://localhost:5173";
+        String projectUrl = baseUrl + "/login?email=" + user.getEmail() + "&redirect=/projects/" + project.getId();
         String subject = "Added to project: " + project.getName();
         String body = "Hello " + user.getFullName() + ",\n\n" +
                       "You have been added to the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + addedByName + ".\n\n" +
