@@ -18,6 +18,7 @@ public class TicketResponse {
     private UserResponse reporter;
     private String projectName;
     private String projectKey;
+    private Long projectId;
     private String sprintName;
     private Long sprintId;
     private boolean testerApproved;

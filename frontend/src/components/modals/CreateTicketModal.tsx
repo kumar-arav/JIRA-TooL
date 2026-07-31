@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { getProjects } from '@/api/projects'
 import { getSprintsByProject } from '@/api/sprints'
 import { getUsers } from '@/api/users'
-import { createTicket } from '@/api/tickets'
+import { createTicket, updateTicket } from '@/api/tickets'
 import { Project, Sprint, User } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -12,6 +12,7 @@ interface CreateTicketModalProps {
   onCreated: () => void
   defaultProjectId?: number | ''
   defaultSprintId?: number | ''
+  ticketToEdit?: any
 }
 
 export default function CreateTicketModal({ 
@@ -19,7 +20,8 @@ export default function CreateTicketModal({
   onClose, 
   onCreated,
   defaultProjectId = '',
-  defaultSprintId = ''
+  defaultSprintId = '',
+  ticketToEdit = null
 }: CreateTicketModalProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [sprints, setSprints] = useState<Sprint[]>([])
@@ -39,10 +41,28 @@ export default function CreateTicketModal({
     if (isOpen) {
       getProjects().then(setProjects).catch(() => toast.error('Failed to load projects'))
       getUsers().then(setUsers).catch(() => toast.error('Failed to load users'))
-      setSelectedProjectId(defaultProjectId)
-      setSelectedSprintId(defaultSprintId)
+      
+      if (ticketToEdit) {
+        setTitle(ticketToEdit.title || '')
+        setDescription(ticketToEdit.description || '')
+        setStoryPoints(ticketToEdit.storyPoints || 3)
+        setPriority(ticketToEdit.priority || 'MEDIUM')
+        setDueDate(ticketToEdit.dueDate || '')
+        setSelectedProjectId(ticketToEdit.projectId || '')
+        setSelectedSprintId(ticketToEdit.sprintId || '')
+        setSelectedAssigneeId(ticketToEdit.assignee?.id || '')
+      } else {
+        setTitle('')
+        setDescription('')
+        setStoryPoints(3)
+        setPriority('MEDIUM')
+        setDueDate('')
+        setSelectedProjectId(defaultProjectId)
+        setSelectedSprintId(defaultSprintId)
+        setSelectedAssigneeId('')
+      }
     }
-  }, [isOpen, defaultProjectId, defaultSprintId])
+  }, [isOpen, defaultProjectId, defaultSprintId, ticketToEdit])
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -69,7 +89,7 @@ export default function CreateTicketModal({
 
     setSubmitting(true)
     try {
-      await createTicket({
+      const payload = {
         title,
         description,
         storyPoints,
@@ -78,8 +98,14 @@ export default function CreateTicketModal({
         projectId: selectedProjectId,
         sprintId: selectedSprintId || null,
         assigneeId: selectedAssigneeId || null
-      })
-      toast.success('Ticket created successfully! 🎫')
+      }
+      if (ticketToEdit) {
+        await updateTicket(ticketToEdit.id, payload)
+        toast.success('Ticket updated successfully! 🎫')
+      } else {
+        await createTicket(payload)
+        toast.success('Ticket created successfully! 🎫')
+      }
       onCreated()
       onClose()
       // Reset form
@@ -92,7 +118,7 @@ export default function CreateTicketModal({
       setSelectedSprintId('')
       setSelectedAssigneeId('')
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to create ticket')
+      toast.error(err.response?.data?.message || 'Failed to save ticket')
     } finally {
       setSubmitting(false)
     }
@@ -102,7 +128,7 @@ export default function CreateTicketModal({
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
-          <h3 className="font-bold text-sm tracking-wide">Create New Ticket</h3>
+          <h3 className="font-bold text-sm tracking-wide">{ticketToEdit ? 'Edit Ticket Details' : 'Create New Ticket'}</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white text-xs font-bold bg-transparent border-0 cursor-pointer">✕</button>
         </div>
 
@@ -204,7 +230,7 @@ export default function CreateTicketModal({
           <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
             <button type="button" onClick={onClose} className="btn-secondary text-[11px] py-1.5" disabled={submitting}>Cancel</button>
             <button type="submit" className="btn-primary text-[11px] py-1.5" disabled={submitting}>
-              {submitting ? 'Creating...' : 'Create Ticket'}
+              {submitting ? (ticketToEdit ? 'Saving...' : 'Creating...') : (ticketToEdit ? 'Save Changes' : 'Create Ticket')}
             </button>
           </div>
         </form>

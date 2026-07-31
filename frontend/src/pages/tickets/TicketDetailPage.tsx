@@ -6,8 +6,9 @@ import { Ticket, STATUS_TAG, PRIORITY_TAG, User } from '@/types'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import toast from 'react-hot-toast'
-import { ArrowLeft, CheckCircle, UploadCloud, Paperclip, Eye, Trash2, FileText } from 'lucide-react'
+import { ArrowLeft, CheckCircle, UploadCloud, Paperclip, Eye, Trash2, FileText, Edit } from 'lucide-react'
 import { wsClient } from '@/utils/websocket'
+import CreateTicketModal from '@/components/modals/CreateTicketModal'
 
 export default function TicketDetailPage() {
   const { id } = useParams()
@@ -18,6 +19,7 @@ export default function TicketDetailPage() {
   const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; url: string; size: string } | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const refresh = () => { if (id) getTicket(parseInt(id)).then(setTicket) }
 
@@ -85,12 +87,23 @@ export default function TicketDetailPage() {
 
   return (
     <div className="page-container max-w-4xl">
-      <div className="flex items-center gap-3 mb-4">
-        <Link to="/tickets" className="btn-ghost p-1.5"><ArrowLeft size={14} /></Link>
-        <div>
-          <span className="text-[10.5px] font-mono font-bold text-blue-600">{ticket.ticketKey}</span>
-          <h1 className="text-base font-black text-slate-900 mt-0.5">{ticket.title}</h1>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Link to="/tickets" className="btn-ghost p-1.5"><ArrowLeft size={14} /></Link>
+          <div>
+            <span className="text-[10.5px] font-mono font-bold text-blue-600">{ticket.ticketKey}</span>
+            <h1 className="text-base font-black text-slate-900 mt-0.5">{ticket.title}</h1>
+          </div>
         </div>
+        {user && ['ADMIN', 'PROJECT_OWNER', 'SCRUM_MASTER', 'MANAGER', 'DEVELOPER', 'TESTER', 'TRAINEE', 'CTO'].includes(user.role) && (
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-md text-[11.5px] font-semibold hover:bg-brand-dark transition-all shadow-sm cursor-pointer"
+          >
+            <Edit size={13} />
+            <span>Edit Ticket</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -334,6 +347,12 @@ export default function TicketDetailPage() {
           </div>
         </div>
       )}
+      <CreateTicketModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onCreated={refresh}
+        ticketToEdit={ticket}
+      />
     </div>
   )
 }

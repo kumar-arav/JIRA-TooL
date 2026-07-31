@@ -25,7 +25,7 @@ export interface Ticket {
   id: number; ticketKey: string; title: string; description: string;
   storyPoints: number; status: TicketStatus; priority: Priority;
   dueDate: string; assignee: User; assigner: User; reporter: User;
-  projectName: string; projectKey: string; sprintName: string; sprintId: number;
+  projectName: string; projectKey: string; projectId?: number; sprintName: string; sprintId: number;
   testerApproved: boolean; managerApproved: boolean; closureNotes: string;
   comments: Comment[]; createdAt: string; updatedAt: string;
 }

@@ -20,6 +20,11 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> create(@Valid @RequestBody CreateTicketRequest req, @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.createTicket(req, user != null ? user.getId() : null)));
     }
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER','SCRUM_MASTER','MANAGER','DEVELOPER','TESTER','TRAINEE','CTO')")
+    public ResponseEntity<ApiResponse<TicketResponse>> updateTicket(@PathVariable Long id, @Valid @RequestBody CreateTicketRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(ticketService.updateTicket(id, req)));
+    }
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.getById(id)));

@@ -116,6 +116,38 @@ public class TicketServiceImpl {
         return mapToResponse(saved);
     }
 
+    public TicketResponse updateTicket(Long ticketId, CreateTicketRequest req) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
+
+        ticket.setTitle(req.getTitle());
+        ticket.setDescription(req.getDescription());
+        ticket.setStoryPoints(req.getStoryPoints());
+        ticket.setPriority(req.getPriority());
+
+        if (req.getSprintId() != null) {
+            ticket.setSprint(sprintRepository.findById(req.getSprintId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId())));
+        } else {
+            ticket.setSprint(null);
+        }
+
+        if (req.getAssigneeId() != null) {
+            ticket.setAssignee(userRepository.findById(req.getAssigneeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", req.getAssigneeId())));
+        } else {
+            ticket.setAssignee(null);
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+        
+        try {
+            com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\"}");
+        } catch (Exception ignored) {}
+
+        return mapToResponse(saved);
+    }
+
     public TicketResponse updateStatus(Long ticketId, UpdateTicketStatusRequest req) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
@@ -329,6 +361,7 @@ public class TicketServiceImpl {
                 .reporter(t.getReporter() != null ? mapUser(t.getReporter()) : null)
                 .projectName(t.getProject() != null ? t.getProject().getName() : null)
                 .projectKey(t.getProject() != null ? t.getProject().getProjectKey() : null)
+                .projectId(t.getProject() != null ? t.getProject().getId() : null)
                 .sprintName(t.getSprint() != null ? t.getSprint().getName() : null)
                 .sprintId(t.getSprint() != null ? t.getSprint().getId() : null)
                 .testerApproved(t.isTesterApproved())
