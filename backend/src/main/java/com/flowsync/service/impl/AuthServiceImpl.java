@@ -91,9 +91,7 @@ public class AuthServiceImpl {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.getRole() != Role.ADMIN && (user.getAddedByAdmin() == null || !user.getAddedByAdmin())) {
-            throw new IllegalArgumentException("Access Denied: Only Admin or Admin-registered users are permitted to authenticate.");
-        }
+
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid email or password");
