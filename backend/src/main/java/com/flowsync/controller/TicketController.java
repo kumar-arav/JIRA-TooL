@@ -16,7 +16,7 @@ import java.util.List;
 public class TicketController {
     private final TicketServiceImpl ticketService;
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_OWNER','SCRUM_MASTER','MANAGER','DEVELOPER','TESTER','TRAINEE','CTO')")
     public ResponseEntity<ApiResponse<TicketResponse>> create(@Valid @RequestBody CreateTicketRequest req, @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.createTicket(req, user != null ? user.getId() : null)));
     }

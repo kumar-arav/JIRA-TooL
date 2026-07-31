@@ -48,6 +48,19 @@ public class TicketServiceImpl {
                 .project(project)
                 .build();
 
+        if (reporterId != null) {
+            User reporter = userRepository.findById(reporterId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", reporterId));
+            if (reporter.getRole() != com.flowsync.enums.Role.ADMIN) {
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(reporter.getId());
+                boolean isMember = project.getMembers().stream().anyMatch(m -> m.getId().equals(reporter.getId()) || m.getEmail().equalsIgnoreCase(reporter.getEmail()));
+                if (!isOwner && !isMember) {
+                    throw new org.springframework.security.access.AccessDeniedException("You are not authorized to create tickets in this project. You must be added to the project members first.");
+                }
+            }
+            ticket.setReporter(reporter);
+        }
+
         if (req.getSprintId() != null) {
             ticket.setSprint(sprintRepository.findById(req.getSprintId())
                     .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId())));
@@ -56,11 +69,6 @@ public class TicketServiceImpl {
         if (req.getAssigneeId() != null) {
             ticket.setAssignee(userRepository.findById(req.getAssigneeId())
                     .orElseThrow(() -> new ResourceNotFoundException("User", req.getAssigneeId())));
-        }
-
-        if (reporterId != null) {
-            ticket.setReporter(userRepository.findById(reporterId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User", reporterId)));
         }
 
         Ticket saved = ticketRepository.save(ticket);

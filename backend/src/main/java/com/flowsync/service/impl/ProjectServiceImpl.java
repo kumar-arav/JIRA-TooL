@@ -100,7 +100,20 @@ public class ProjectServiceImpl {
     }
 
     public List<ProjectResponse> getAll() {
-        return projectRepository.findAll().stream()
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String currentEmail = auth != null ? auth.getName() : null;
+        User currentUser = currentEmail != null ? userRepository.findByEmail(currentEmail).orElse(null) : null;
+        
+        List<Project> allProjects = projectRepository.findAll();
+        if (currentUser != null && currentUser.getRole() != com.flowsync.enums.Role.ADMIN) {
+            final User finalUser = currentUser;
+            return allProjects.stream()
+                    .filter(p -> (p.getOwner() != null && p.getOwner().getId().equals(finalUser.getId())) || 
+                                 p.getMembers().stream().anyMatch(m -> m.getId().equals(finalUser.getId()) || m.getEmail().equalsIgnoreCase(finalUser.getEmail())))
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
+        return allProjects.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -114,13 +127,11 @@ public class ProjectServiceImpl {
         
         if (currentUser != null) {
             final User finalUser = currentUser;
-            if (currentUser.getRole() != com.flowsync.enums.Role.ADMIN &&
-                currentUser.getRole() != com.flowsync.enums.Role.CTO &&
-                currentUser.getRole() != com.flowsync.enums.Role.VP) {
+            if (currentUser.getRole() != com.flowsync.enums.Role.ADMIN) {
                 boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(finalUser.getId());
                 boolean isMember = project.getMembers().stream().anyMatch(m -> m.getId().equals(finalUser.getId()) || m.getEmail().equalsIgnoreCase(finalUser.getEmail()));
                 if (!isOwner && !isMember) {
-                    throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view this project");
+                    throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view this project. You must be added to the project by an administrator first.");
                 }
             }
         }
