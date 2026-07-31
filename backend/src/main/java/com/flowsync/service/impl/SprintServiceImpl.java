@@ -44,7 +44,41 @@ public class SprintServiceImpl {
                 .project(project)
                 .build();
 
-        SprintResponse resp = mapToResponse(sprintRepository.save(sprint));
+        Sprint saved = sprintRepository.save(sprint);
+
+        // Resolve creator/active user who created the sprint
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String creatorName = "the project administrator";
+        String creatorEmail = null;
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            creatorName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            creatorEmail = currentUser.getEmail();
+        }
+
+        // Send email to all project members
+        if (project.getMembers() != null) {
+            String sprintUrl = "http://localhost:3000/login?email=";
+            for (User member : project.getMembers()) {
+                if (creatorEmail != null && creatorEmail.equalsIgnoreCase(member.getEmail())) {
+                    continue; // Skip the creator
+                }
+                String destUrl = sprintUrl + member.getEmail() + "&redirect=/sprints/" + project.getId();
+                String subject = "New Sprint Created: " + sprint.getName() + " in " + project.getName();
+                String body = "Hello " + member.getFullName() + ",\n\n" +
+                              "A new sprint '" + sprint.getName() + "' has been created in project '" + project.getName() + "' by " + creatorName + ".\n\n" +
+                              "Sprint Goal: " + (sprint.getGoal() != null ? sprint.getGoal() : "No goal defined yet.") + "\n" +
+                              "Start Date: " + (sprint.getStartDate() != null ? sprint.getStartDate() : "Not scheduled") + "\n" +
+                              "End Date: " + (sprint.getEndDate() != null ? sprint.getEndDate() : "Not scheduled") + "\n\n" +
+                              "You can view and manage sprints here: " + destUrl + "\n\n" +
+                              "Best regards,\nSorim Team";
+                try {
+                    emailService.sendEmail(member.getEmail(), creatorEmail, subject, body);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        SprintResponse resp = mapToResponse(saved);
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"SPRINT_UPDATED\"}");
         return resp;
     }

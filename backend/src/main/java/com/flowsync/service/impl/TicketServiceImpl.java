@@ -72,6 +72,46 @@ public class TicketServiceImpl {
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        // Resolve ticket creator / active user
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String creatorName = "the project administrator";
+        String creatorEmail = null;
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            creatorName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            creatorEmail = currentUser.getEmail();
+        }
+
+        // Send email to assignee
+        if (saved.getAssignee() != null) {
+            String ticketUrl = "http://localhost:3000/login?email=" + saved.getAssignee().getEmail() + "&redirect=/tickets/" + saved.getId();
+            String subject = "New Ticket Assigned: " + saved.getTicketKey() + " - " + saved.getTitle();
+            String body = "Hello " + saved.getAssignee().getFullName() + ",\n\n" +
+                          "A new ticket '" + saved.getTitle() + "' (" + saved.getTicketKey() + ") has been created and assigned to you by " + creatorName + ".\n\n" +
+                          "Priority: " + saved.getPriority().name() + "\n" +
+                          "Due Date: " + (saved.getDueDate() != null ? saved.getDueDate().toString() : "No due date set") + "\n\n" +
+                          "You can view the ticket details here: " + ticketUrl + "\n\n" +
+                          "Best regards,\nSorim Team";
+            try {
+                emailService.sendEmail(saved.getAssignee().getEmail(), creatorEmail, subject, body);
+            } catch (Exception ignored) {}
+
+            // Notify admins
+            try {
+                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
+                for (User adm : admins) {
+                    if (!adm.getEmail().equalsIgnoreCase(saved.getAssignee().getEmail())) {
+                        emailService.sendEmail(adm.getEmail(), creatorEmail, "[Admin Alert] New Ticket Created: " + saved.getTicketKey(),
+                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
+                            "A new ticket '" + saved.getTitle() + "' (" + saved.getTicketKey() + ") has been created and assigned to " + saved.getAssignee().getFullName() + " by " + creatorName + ".\n\n" +
+                            "Best regards,\nSorim Team"
+                        );
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + saved.getId() + "}");
         return mapToResponse(saved);
     }
