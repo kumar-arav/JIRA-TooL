@@ -276,6 +276,36 @@ public class TicketServiceImpl {
     public void deleteTicket(Long id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", id));
+
+        // Identify who performed the delete action
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String deletedByName = "the project administrator";
+        String deletedByEmail = auth != null ? auth.getName() : null;
+        if (deletedByEmail != null) {
+            User currentUser = userRepository.findByEmail(deletedByEmail).orElse(null);
+            if (currentUser != null) {
+                deletedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            }
+        }
+
+        // Notify assignee and reporter
+        java.util.Set<User> toNotify = new java.util.HashSet<>();
+        if (ticket.getAssignee() != null) toNotify.add(ticket.getAssignee());
+        if (ticket.getReporter() != null) toNotify.add(ticket.getReporter());
+
+        for (User user : toNotify) {
+            if (deletedByEmail != null && deletedByEmail.equalsIgnoreCase(user.getEmail())) {
+                continue; // Skip the deleter
+            }
+            String subject = "Ticket Deleted: " + ticket.getTicketKey() + " in " + ticket.getProject().getName();
+            String body = "Hello " + user.getFullName() + ",\n\n" +
+                          "The ticket '" + ticket.getTitle() + "' (" + ticket.getTicketKey() + ") has been deleted/removed by " + deletedByName + ".\n\n" +
+                          "Best regards,\nSorim Team";
+            try {
+                emailService.sendEmail(user.getEmail(), deletedByEmail, subject, body);
+            } catch (Exception ignored) {}
+        }
+
         ticketRepository.delete(ticket);
         try {
             com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\"}");

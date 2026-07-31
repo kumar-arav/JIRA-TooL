@@ -108,6 +108,34 @@ public class SprintServiceImpl {
     public void deleteSprint(Long id) {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint", id));
+
+        // Resolve deleter/active user who deleted the sprint
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String deleterName = "the project administrator";
+        String deleterEmail = null;
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            deleterName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            deleterEmail = currentUser.getEmail();
+        }
+        // Send email to all project members
+        Project project = sprint.getProject();
+        if (project != null && project.getMembers() != null) {
+            for (User member : project.getMembers()) {
+                if (deleterEmail != null && deleterEmail.equalsIgnoreCase(member.getEmail())) {
+                    continue; // Skip the deleter
+                }
+                String subject = "Sprint Deleted: " + sprint.getName() + " in " + project.getName();
+                String body = "Hello " + member.getFullName() + ",\n\n" +
+                              "The sprint '" + sprint.getName() + "' in project '" + project.getName() + "' has been deleted/removed by " + deleterName + ".\n\n" +
+                              "All tickets from this sprint have been returned to the project backlog.\n\n" +
+                              "Best regards,\nSorim Team";
+                try {
+                    emailService.sendEmail(member.getEmail(), deleterEmail, subject, body);
+                } catch (Exception ignored) {}
+            }
+        }
+
         if (sprint.getTickets() != null) {
             for (com.flowsync.entity.Ticket t : sprint.getTickets()) {
                 t.setSprint(null);

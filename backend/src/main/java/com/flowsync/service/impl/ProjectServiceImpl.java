@@ -270,6 +270,37 @@ public class ProjectServiceImpl {
     public void deleteProject(Long id) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", id));
+
+        // Identify who performed the delete action
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String deletedByName = "the project administrator";
+        String deletedByEmail = auth != null ? auth.getName() : null;
+        if (deletedByEmail != null) {
+            User currentUser = userRepository.findByEmail(deletedByEmail).orElse(null);
+            if (currentUser != null) {
+                deletedByName = currentUser.getFullName() + " (" + currentUser.getRole().name().replace("_", " ") + ")";
+            }
+        }
+
+        // Notify owner and members
+        java.util.Set<User> toNotify = new java.util.HashSet<>();
+        if (project.getOwner() != null) toNotify.add(project.getOwner());
+        if (project.getMembers() != null) toNotify.addAll(project.getMembers());
+
+        for (User user : toNotify) {
+            if (deletedByEmail != null && deletedByEmail.equalsIgnoreCase(user.getEmail())) {
+                continue; // Skip the deleter
+            }
+            String subject = "Project Deleted: " + project.getName();
+            String body = "Hello " + user.getFullName() + ",\n\n" +
+                          "The project '" + project.getName() + "' (" + project.getProjectKey() + ") has been deleted/removed by " + deletedByName + ".\n\n" +
+                          "All associated sprints, tickets, and tasks are no longer accessible.\n\n" +
+                          "Best regards,\nSorim Team";
+            try {
+                emailService.sendEmail(user.getEmail(), deletedByEmail, subject, body);
+            } catch (Exception ignored) {}
+        }
+
         projectRepository.delete(project);
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"PROJECT_UPDATED\"}");
     }
