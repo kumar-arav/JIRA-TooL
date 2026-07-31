@@ -27,33 +27,11 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
             @Override
             public void afterConnectionEstablished(WebSocketSession session) {
                 sessions.add(session);
-                String email = getEmailFromSession(session);
-                if (email != null) {
-                    try {
-                        userRepository.findByEmail(email).ifPresent(user -> {
-                            user.setActive(true);
-                            user.setLastLoginTime(java.time.LocalDateTime.now());
-                            userRepository.save(user);
-                            broadcast("{\"type\": \"USER_LOGIN\", \"user\": \"" + email + "\", \"lastLoginTime\": \"" + user.getLastLoginTime().toString() + "\"}");
-                        });
-                    } catch (Exception ignored) {}
-                }
             }
 
             @Override
             public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
                 sessions.remove(session);
-                String email = getEmailFromSession(session);
-                if (email != null) {
-                    try {
-                        userRepository.findByEmail(email).ifPresent(user -> {
-                            user.setActive(false);
-                            user.setLastLogoutTime(java.time.LocalDateTime.now());
-                            userRepository.save(user);
-                            broadcast("{\"type\": \"USER_LOGOUT\", \"user\": \"" + email + "\", \"lastLogoutTime\": \"" + user.getLastLogoutTime().toString() + "\"}");
-                        });
-                    } catch (Exception ignored) {}
-                }
             }
 
             @Override
