@@ -210,7 +210,10 @@ public class AdminController {
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
 
         if (employee.getRole() == Role.ADMIN) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Admin user cannot be deleted"));
+            long adminCount = userRepository.findByRole(Role.ADMIN).size();
+            if (adminCount <= 1) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Cannot delete the last remaining administrator account in the system."));
+            }
         }
 
         // 1. Remove user from project members and reset project owner

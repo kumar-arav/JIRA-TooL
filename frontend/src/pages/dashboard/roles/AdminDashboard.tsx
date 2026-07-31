@@ -415,15 +415,13 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                       >
                         <Edit size={11} />
                       </button>
-                      {u.role !== 'ADMIN' && (
-                        <button 
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="p-1 text-slate-400 hover:text-red-650 bg-transparent border-0 cursor-pointer font-bold"
-                          title="Delete User"
-                        >
-                          🗑️
-                        </button>
-                      )}
+                      <button 
+                        onClick={() => handleDeleteUser(u.id)}
+                        className="p-1 text-slate-400 hover:text-red-650 bg-transparent border-0 cursor-pointer font-bold"
+                        title="Delete User"
+                      >
+                        🗑️
+                      </button>
                       <span className={`tag text-[8px] ${u.active ? 'tag-green' : 'tag-gray'}`}>
                         {u.active ? 'ACTIVE' : 'INACTIVE'}
                       </span>
