@@ -40,7 +40,7 @@ export default function LoginPage() {
     return DEFAULT_DEMO_ACCOUNTS
   })
 
-  const [email, setEmail] = useState('admin@flowsync.com')
+  const [email, setEmail] = useState('')
   const [password, setPass] = useState('')
   const [loading, setLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState('Admin')
@@ -346,18 +346,14 @@ export default function LoginPage() {
         role: regRole,
         avatarColor: '#4F46E5'
       })
-      toast.success('Account created successfully! Proceeding to verification.')
+      toast.success('Registration successful! Please check your email and log in.')
       
       // Auto fill details for the login stage
       setEmail(regEmail)
-      setPass(regPassword)
+      setPass('') // Enforce typing the password they received or set
       
-      // Generate a dynamic MFA security code for this new person
-      setDigits(Array(6).fill(''))
-      setExpectedMfa(Math.floor(100000 + Math.random() * 900000).toString())
-      
-      // Proceed directly to the verification steps for this new user
-      setStep('VERIFY')
+      // Proceed to login screen to start the temporary password change process
+      setStep('LOGIN')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Registration failed. Try a different email.')
     } finally {
@@ -658,7 +654,25 @@ export default function LoginPage() {
                   />
                 </div>
 
-
+                <div>
+                  <label className="field-label text-[10.5px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Role</label>
+                  <select 
+                    value={regRole} 
+                    onChange={e => setRegRole(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-[13px] text-slate-850 focus:outline-none focus:border-brand"
+                    required
+                  >
+                    <option value="ADMIN">Admin</option>
+                    <option value="SCRUM_MASTER">Scrum Master</option>
+                    <option value="PROJECT_OWNER">Project Owner</option>
+                    <option value="CTO">CTO</option>
+                    <option value="VP">VP</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="DEVELOPER">Developer</option>
+                    <option value="TESTER">Tester</option>
+                    <option value="TRAINEE">Trainee</option>
+                  </select>
+                </div>
 
                 <button 
                   type="submit" 
