@@ -2,20 +2,27 @@ package com.flowsync.repository;
 import com.flowsync.entity.Ticket;
 import com.flowsync.enums.Priority;
 import com.flowsync.enums.TicketStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 import java.util.Optional;
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
+public interface TicketRepository extends MongoRepository<Ticket, Long> {
     Optional<Ticket> findByTicketKey(String key);
     List<Ticket> findByProject_Id(Long projectId);
     List<Ticket> findBySprint_Id(Long sprintId);
     List<Ticket> findByAssignee_Id(Long userId);
     List<Ticket> findByStatus(TicketStatus status);
     List<Ticket> findByProject_IdAndStatus(Long projectId, TicketStatus status);
-    @Query("SELECT COALESCE(SUM(t.storyPoints),0) FROM Ticket t WHERE t.sprint.id = :sid AND t.status = 'CLOSED'")
-    int sumCompletedPoints(@Param("sid") Long sprintId);
-    @Query("SELECT t FROM Ticket t WHERE t.project.id = :pid AND (LOWER(t.title) LIKE LOWER(CONCAT('%',:q,'%')))")
-    List<Ticket> searchInProject(@Param("pid") Long pid, @Param("q") String q);
+    
+    default int sumCompletedPoints(Long sprintId) {
+        return findBySprint_Id(sprintId).stream()
+                .filter(t -> t.getStatus() == TicketStatus.CLOSED || t.getStatus().name().equals("CLOSED") || t.getStatus().name().equals("COMPLETED"))
+                .mapToInt(t -> t.getStoryPoints() != null ? t.getStoryPoints() : 0)
+                .sum();
+    }
+    
+    default List<Ticket> searchInProject(Long pid, String q) {
+        return findByProject_Id(pid).stream()
+                .filter(t -> t.getTitle() != null && t.getTitle().toLowerCase().contains(q.toLowerCase()))
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

@@ -1,22 +1,20 @@
 package com.flowsync.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
 
-@Entity @Table(name = "attachments")
+@Document(collection = "attachments")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Attachment extends BaseEntity {
-    @Column(nullable = false)
     private String fileName;
     private String fileUrl;
     private String fileType;
     private Long fileSize;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id")
+    @DocumentReference
     private Ticket ticket;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploaded_by")
+    @DocumentReference
     private User uploadedBy;
 }

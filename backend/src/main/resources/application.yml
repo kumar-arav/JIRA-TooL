@@ -5,26 +5,10 @@ spring:
   application:
     name: flowsync-backend
 
-  # H2 File-Based Database (persistent)
-  datasource:
-    url: "${SPRING_DATASOURCE_URL:jdbc:h2:file:C:/Users/ST-Aravind/.flowsync/db/flowsyncdb;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1}"
-    username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:password}
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  jpa:
-    database-platform: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.H2Dialect}
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-        default_batch_fetch_size: 20
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/flowsyncdb
 
   # Email (configure for production)
   mail:

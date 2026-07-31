@@ -1,19 +1,17 @@
 package com.flowsync.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
 
-@Entity @Table(name = "comments")
+@Document(collection = "comments")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Comment extends BaseEntity {
-    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", nullable = false)
+    @DocumentReference
     private Ticket ticket;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
+    @DocumentReference
     private User author;
 }

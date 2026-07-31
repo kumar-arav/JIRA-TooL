@@ -1,29 +1,24 @@
 package com.flowsync.entity;
 
 import com.flowsync.enums.NotificationType;
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
 
-@Entity @Table(name = "notifications")
+@Document(collection = "notifications")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Notification extends BaseEntity {
-    @Enumerated(EnumType.STRING)
     private NotificationType type;
 
-    @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
     private String message;
 
-    @Column(name = "is_read", nullable = false)
     @Builder.Default
     private boolean read = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_id", nullable = false)
+    @DocumentReference
     private User recipient;
 
-    @Column(name = "related_ticket_id")
     private Long relatedTicketId;
 }
