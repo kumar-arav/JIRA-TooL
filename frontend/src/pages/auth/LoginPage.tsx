@@ -17,9 +17,7 @@ const COUNTRY_CODES = [
   { code: '+65', name: 'Singapore' },
 ]
 
-const DEFAULT_DEMO_ACCOUNTS: Record<string, { email: string; password: string; name: string; initials: string; color: string }> = {
-  'Admin': { email: 'admin@flowsync.com', password: 'password123', name: 'Admin User', initials: 'AD', color: '#374151' }
-}
+const DEFAULT_DEMO_ACCOUNTS: Record<string, { email: string; password: string; name: string; initials: string; color: string }> = {}
 
 export default function LoginPage() {
   const dispatch = useDispatch()

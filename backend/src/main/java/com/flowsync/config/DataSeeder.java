@@ -29,40 +29,17 @@ public class DataSeeder implements CommandLineRunner {
         boolean firstTimeSeed = userRepo.count() == 0;
 
         if (firstTimeSeed) {
-            log.info("First boot detected — seeding Admin user...");
+            log.info("First boot detected — resetting database sequences for a clean start...");
             try {
                 mongoTemplate.dropCollection(DatabaseSequence.class);
                 projectRepo.deleteAll();
                 sprintRepo.deleteAll();
                 ticketRepo.deleteAll();
                 notifRepo.deleteAll();
-                log.info("Dropped database sequences and collections for fresh seed starting at ID 1.");
+                log.info("Dropped database sequences and collections. The first registered profile will start at ID 1.");
             } catch (Exception e) {
                 log.error("Failed to clean collections: {}", e.getMessage());
             }
-
-            String adminRawPassword = "admin123";
-
-            try {
-                java.nio.file.Files.writeString(
-                    java.nio.file.Path.of("admin_credentials.txt"),
-                    "Admin Email: admin@flowsync.com\nTemporary Password: " + adminRawPassword + "\n"
-                );
-                log.info("Admin temporary credentials written to admin_credentials.txt");
-            } catch (Exception e) {
-                log.error("Failed to write admin credentials file: {}", e.getMessage());
-            }
-
-            User admin = User.builder()
-                    .firstName("Admin").lastName("User")
-                    .email("admin@flowsync.com")
-                    .password(encoder.encode(adminRawPassword))
-                    .role(Role.ADMIN).avatarColor("#374151")
-                    .mfaEnabled(true).active(true).passwordChanged(false)
-                    .build();
-            save(admin);
-
-            log.info("Admin user seeded. All data will persist across restarts.");
         } else {
             log.info("Database already initialised — all existing data retained.");
         }
