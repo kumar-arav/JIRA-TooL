@@ -457,8 +457,8 @@ export default function LoginPage() {
         <div className="space-y-12">
           {/* Brand/Logo Header */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black shadow-sm">SR</div>
-            <span className="text-lg font-black text-slate-800 tracking-tight">Sorim</span>
+            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black shadow-sm">IS</div>
+            <span className="text-lg font-black text-slate-800 tracking-tight">IntelliSprint</span>
             <span className="text-[9px] font-bold bg-gradient-to-r from-brand to-fs-amber text-white px-1.5 py-0.5 rounded shadow-[0_1px_2px_rgba(0,0,0,0.05)]">AI</span>
           </div>
 
@@ -468,7 +468,7 @@ export default function LoginPage() {
               Plan, track, and release great software
             </h1>
             <p className="text-xs md:text-[13px] text-slate-600 leading-relaxed max-w-sm">
-              Sign in to continue to Sorim
+              Sign in to continue to IntelliSprint
             </p>
 
             {/* Feature lists */}
@@ -492,7 +492,7 @@ export default function LoginPage() {
 
         {/* Footer Brand */}
         <div className="mt-auto pt-16 flex items-center gap-1.5 text-slate-500">
-          <span className="text-[10px] font-black uppercase tracking-wider">▲ Sorim</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">▲ IntelliSprint</span>
           <span className="text-[9px] text-slate-400">/ Dream Team 💛</span>
         </div>
       </div>
@@ -509,9 +509,9 @@ export default function LoginPage() {
           {step === 'LOGIN' && (
             <div className="bg-white rounded-xl border border-slate-200/80 shadow-md p-6 md:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
               <div className="text-center space-y-1">
-                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center mx-auto mb-2 text-white text-sm font-black shadow-sm">SR</div>
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center mx-auto mb-2 text-white text-sm font-black shadow-sm">IS</div>
                 <h2 className="text-xl font-bold text-slate-900 tracking-tight">Welcome back! 👋</h2>
-                <p className="text-[12.5px] text-slate-500">Log in to your Sorim account</p>
+                <p className="text-[12.5px] text-slate-500">Log in to your IntelliSprint account</p>
               </div>
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
@@ -594,7 +594,7 @@ export default function LoginPage() {
 
               {/* Create Account Link */}
               <div className="text-center pt-4 border-t border-slate-100 text-[12px] text-slate-500">
-                New to Sorim? <button onClick={() => setStep('REGISTER')} className="text-brand hover:underline font-bold bg-transparent border-0 cursor-pointer">Create an account</button>
+                New to IntelliSprint? <button onClick={() => setStep('REGISTER')} className="text-brand hover:underline font-bold bg-transparent border-0 cursor-pointer">Create an account</button>
               </div>
             </div>
           )}
@@ -603,9 +603,9 @@ export default function LoginPage() {
           {step === 'REGISTER' && (
             <div className="bg-white rounded-xl border border-slate-200/80 shadow-md p-6 md:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-200">
               <div className="text-center space-y-1">
-                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center mx-auto mb-2 text-white text-sm font-black shadow-sm">SR</div>
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center mx-auto mb-2 text-white text-sm font-black shadow-sm">IS</div>
                 <h2 className="text-xl font-bold text-slate-900 tracking-tight">Create your account</h2>
-                <p className="text-[12.5px] text-slate-500">Sign up to get started with Sorim</p>
+                <p className="text-[12.5px] text-slate-500">Sign up to get started with IntelliSprint</p>
               </div>
 
               <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
@@ -826,7 +826,7 @@ export default function LoginPage() {
           <span>·</span>
           <a href="#cookie" className="hover:text-slate-600">Cookie policy</a>
           <span>·</span>
-          <span>© 2026 Sorim</span>
+          <span>© 2026 IntelliSprint</span>
         </div>
       </div>
 

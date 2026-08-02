@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { wsClient } from '@/utils/websocket'
 import CreateSprintModal from '@/components/modals/CreateSprintModal'
+import EditProjectModal from '@/components/modals/EditProjectModal'
 import { Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -23,6 +24,7 @@ export default function ProjectDetailPage() {
   const [submittingMember, setSubmittingMember] = useState(false)
   const [showSprintModal, setShowSprintModal] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const currentUser = useSelector((s: RootState) => s.auth.user)
@@ -141,8 +143,11 @@ export default function ProjectDetailPage() {
               <Plus size={12} /> New Sprint
             </button>
           )}
-          <Link to={`/sprints/${project.id}`} className="btn-secondary">View Sprints</Link>
-          <Link to={`/kanban`} className="btn-primary">Open Board</Link>
+          {canEdit && (
+            <button onClick={() => setShowEditProjectModal(true)} className="btn-secondary text-[11px] gap-1 flex items-center">
+              ⚙️ Edit Project
+            </button>
+          )}
           {canDeleteProject && (
             <button
               onClick={handleDeleteProject}
@@ -252,6 +257,15 @@ export default function ProjectDetailPage() {
         onClose={() => setShowSprintModal(false)}
         projectId={project.id}
         onCreated={() => {
+          setRefreshTrigger(prev => prev + 1)
+        }}
+      />
+
+      <EditProjectModal
+        isOpen={showEditProjectModal}
+        onClose={() => setShowEditProjectModal(false)}
+        project={project}
+        onUpdated={() => {
           setRefreshTrigger(prev => prev + 1)
         }}
       />

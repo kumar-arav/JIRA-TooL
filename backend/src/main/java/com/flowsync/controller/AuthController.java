@@ -80,9 +80,9 @@ public class AuthController {
             try {
                 emailService.sendSystemEmail(
                     user.getEmail(),
-                    "Profile Email Updated - FlowSync",
+                    "Profile Email Updated - Sorim",
                     "Hello " + user.getFullName() + ",\n\n" +
-                    "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
+                    "Your Sorim profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
                     "Best regards,\nSorim Team"
                 );
             } catch (Exception e) {

@@ -146,8 +146,8 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden" style={{ background: '#FAF6EE' }}>
       <aside className={`${sidebarOpen ? 'w-56' : 'w-0 overflow-hidden'} flex-shrink-0 bg-slate-900 text-slate-300 flex flex-col transition-all duration-200 z-30`}>
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-slate-800 bg-slate-950 flex-shrink-0">
-          <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black">SR</div>
-          <span className="text-sm font-black text-slate-100 tracking-tight">Sorim</span>
+          <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black">IS</div>
+          <span className="text-sm font-black text-slate-100 tracking-tight">IntelliSprint</span>
           <span className="text-[9px] font-bold bg-gradient-to-r from-brand to-fs-amber text-white px-1.5 py-0.5 rounded">AI</span>
         </div>
 
