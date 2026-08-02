@@ -3,12 +3,12 @@ server:
 
 spring:
   application:
-    name: flowsync-backend
+    name: sorim-backend
 
   # MongoDB Configuration
   data:
     mongodb:
-      uri: mongodb://localhost:27017/flowsyncdb
+      uri: mongodb://localhost:27017/sorimdb
 
   # Email (configure for production)
   mail:

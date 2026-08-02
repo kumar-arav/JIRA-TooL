@@ -50,18 +50,18 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
 
   // Login Activity & Audit Logs States
   const [loginActivity, setLoginActivity] = useState<Array<{ user: string; role: string; when: string; ip: string; ok: boolean }>>(() => {
-    const saved = localStorage.getItem('flowsync_login_activity')
+    const saved = localStorage.getItem('sorim_login_activity')
     return saved ? JSON.parse(saved) : [
-      { user: 'sarah.chen@flowsync.com', role: 'SCRUM_MASTER', when: 'Today 09:12', ip: '10.0.4.21', ok: true },
-      { user: 'james.doe@flowsync.com',  role: 'DEVELOPER',    when: 'Today 09:05', ip: '10.0.4.34', ok: true },
-      { user: 'priya.rao@flowsync.com',  role: 'TESTER',       when: 'Today 08:58', ip: '10.0.4.19', ok: true },
+      { user: 'sarah.chen@sorim.com', role: 'SCRUM_MASTER', when: 'Today 09:12', ip: '10.0.4.21', ok: true },
+      { user: 'james.doe@sorim.com',  role: 'DEVELOPER',    when: 'Today 09:05', ip: '10.0.4.34', ok: true },
+      { user: 'priya.rao@sorim.com',  role: 'TESTER',       when: 'Today 08:58', ip: '10.0.4.19', ok: true },
       { user: 'unknown@external.com',    role: '—',            when: 'Today 03:41', ip: '185.22.8.4', ok: false },
-      { user: 'rita.patel@flowsync.com', role: 'MANAGER',      when: 'Yesterday 17:22', ip: '10.0.4.52', ok: true },
+      { user: 'rita.patel@sorim.com', role: 'MANAGER',      when: 'Yesterday 17:22', ip: '10.0.4.52', ok: true },
     ]
   })
 
   const [auditLogs, setAuditLogs] = useState<Array<{ action: string; detail: string; when: string }>>(() => {
-    const saved = localStorage.getItem('flowsync_audit_logs')
+    const saved = localStorage.getItem('sorim_audit_logs')
     return saved ? JSON.parse(saved) : [
       { action: 'TICKET_STATUS_CHANGED', detail: 'EHR-105 → TESTING by priya.rao', when: '09:44' },
       { action: 'USER_LOGIN',            detail: 'sarah.chen authenticated with MFA', when: '09:12' },
@@ -87,7 +87,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
     const newLog = { action: newLogAction, detail: newLogDetail, when: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
     const updated = [newLog, ...auditLogs]
     setAuditLogs(updated)
-    localStorage.setItem('flowsync_audit_logs', JSON.stringify(updated))
+    localStorage.setItem('sorim_audit_logs', JSON.stringify(updated))
     setNewLogDetail('')
     setShowAddLogModal(false)
     toast.success('Audit log added!')
@@ -105,7 +105,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
     }
     const updated = [newLogin, ...loginActivity]
     setLoginActivity(updated)
-    localStorage.setItem('flowsync_login_activity', JSON.stringify(updated))
+    localStorage.setItem('sorim_login_activity', JSON.stringify(updated))
     setNewLoginUser('')
     setShowAddLoginModal(false)
     toast.success('Login activity recorded!')
@@ -301,7 +301,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
       }
       const updatedLogs = [newLog, ...auditLogs]
       setAuditLogs(updatedLogs)
-      localStorage.setItem('flowsync_audit_logs', JSON.stringify(updatedLogs))
+      localStorage.setItem('sorim_audit_logs', JSON.stringify(updatedLogs))
 
       // Reset & Close
       setShowAddUserModal(false)
@@ -593,7 +593,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                 <input 
                   type="email" 
                   className="field-input text-xs" 
-                  placeholder="e.g. john.doe@flowsync.com"
+                  placeholder="e.g. john.doe@sorim.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
@@ -763,7 +763,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                     <input 
                       type="email" 
                       className="field-input text-xs" 
-                      placeholder="e.g. john.doe@flowsync.com"
+                      placeholder="e.g. john.doe@sorim.com"
                       value={empEmail}
                       onChange={e => setEmpEmail(e.target.value)}
                       required

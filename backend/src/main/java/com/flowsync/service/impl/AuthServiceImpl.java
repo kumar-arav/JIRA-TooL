@@ -50,15 +50,15 @@ public class AuthServiceImpl {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .role(req.getRole() != null ? req.getRole() : Role.DEVELOPER)
                 .avatarColor(req.getAvatarColor() != null ? req.getAvatarColor() : "#2563EB")
-                .passwordChanged(true)
+                .passwordChanged(false)
                 .addedByAdmin(addedByAdmin)
                 .build();
         user = userRepository.save(user);
 
         if (addedByAdmin) {
-            String subject = "Account Created on FlowSync";
+            String subject = "Account Created on Sorim";
             String body = "Hello " + req.getFirstName() + " " + req.getLastName() + ",\n\n" +
-                    "An account has been created for you in FlowSync by the System Administrator (" + adminEmail + ").\n\n" +
+                    "An account has been created for you in Sorim by the System Administrator (" + adminEmail + ").\n\n" +
                     "Here are your login credentials:\n" +
                     "Email: " + normalizedEmail + "\n" +
                     "Password: " + req.getPassword() + "\n\n" +
@@ -66,20 +66,6 @@ public class AuthServiceImpl {
                     "Sorim Team";
             try {
                 emailService.sendEmail(normalizedEmail, adminEmail, subject, body);
-            } catch (Exception ignored) {}
-
-            // Also notify other admins
-            try {
-                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                for (User adm : admins) {
-                    if (!adm.getEmail().equalsIgnoreCase(normalizedEmail)) {
-                        emailService.sendEmail(adm.getEmail(), adminEmail, "[Admin Alert] New User Account Registered", 
-                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                            "A new user account has been registered for " + req.getFirstName() + " " + req.getLastName() + " (" + normalizedEmail + ") with the role: " + user.getRole().name() + " by " + (adminEmail != null ? adminEmail : "System") + ".\n\n" +
-                            "Best regards,\nSorim Team"
-                        );
-                    }
-                }
             } catch (Exception ignored) {}
         }
 

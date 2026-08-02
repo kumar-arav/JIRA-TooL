@@ -12,9 +12,9 @@
   </parent>
 
   <groupId>com.flowsync</groupId>
-  <artifactId>flowsync-backend</artifactId>
+  <artifactId>sorim-backend</artifactId>
   <version>1.0.0</version>
-  <name>FlowSync Backend</name>
+  <name>Sorim Backend</name>
   <description>AI-Powered Project Management Platform - Spring Boot Backend</description>
   <packaging>jar</packaging>
 

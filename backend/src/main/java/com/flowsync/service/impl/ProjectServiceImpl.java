@@ -210,20 +210,6 @@ public class ProjectServiceImpl {
         } catch (Exception e) {
             // Log but do not fail the request if email cannot be sent
         }
-
-        // Also notify all admins
-        try {
-            List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-            for (User adm : admins) {
-                if (!adm.getEmail().equalsIgnoreCase(user.getEmail())) {
-                    emailService.sendEmail(adm.getEmail(), addedByEmail, "[Admin Alert] Team Member Added to Project: " + project.getName(), 
-                        "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                        "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has been added to project '" + project.getName() + "' by " + addedByName + ".\n\n" +
-                        "Best regards,\nSorim Team"
-                    );
-                }
-            }
-        } catch (Exception ignored) {}
     }
 
     public void removeMember(Long projectId, Long userId) {
@@ -257,20 +243,6 @@ public class ProjectServiceImpl {
             } catch (Exception e) {
                 // Log but do not fail the request if email cannot be sent
             }
-
-            // Also notify all admins
-            try {
-                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                for (User adm : admins) {
-                    if (!adm.getEmail().equalsIgnoreCase(user.getEmail())) {
-                        emailService.sendEmail(adm.getEmail(), removedByEmail, "[Admin Alert] Team Member Removed from Project: " + project.getName(), 
-                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                            "This is to notify you that the user " + user.getFullName() + " (" + user.getEmail() + ") has been removed from project '" + project.getName() + "' by " + removedByName + ".\n\n" +
-                            "Best regards,\nSorim Team"
-                        );
-                    }
-                }
-            } catch (Exception ignored) {}
         }
     }
 
@@ -352,7 +324,8 @@ public class ProjectServiceImpl {
             }
             // Send notification email to the new Owner if it was updated/changed
             if (oldOwner == null || !oldOwner.getId().equals(owner.getId())) {
-                String projectUrl = "http://localhost:3000/login?email=" + owner.getEmail() + "&redirect=/projects/" + project.getId();
+                String baseUrl = (frontendUrl != null) ? frontendUrl : "http://localhost:5173";
+                String projectUrl = baseUrl + "/login?email=" + owner.getEmail() + "&redirect=/projects/" + project.getId();
                 String subject = "Assigned as Project Owner: " + project.getName();
                 String body = "Hello " + owner.getFullName() + ",\n\n" +
                               "You have been assigned as the Project Owner for the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + updaterName + ".\n\n" +
@@ -360,20 +333,6 @@ public class ProjectServiceImpl {
                               "Best regards,\nSorim Team";
                 try {
                     emailService.sendEmail(owner.getEmail(), updaterEmail, subject, body);
-                } catch (Exception ignored) {}
-
-                // Also notify other admins
-                try {
-                    List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                    for (User adm : admins) {
-                        if (!adm.getEmail().equalsIgnoreCase(owner.getEmail())) {
-                            emailService.sendEmail(adm.getEmail(), updaterEmail, "[Admin Alert] Project Owner Assigned: " + project.getName(),
-                                "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                                "This is to notify you that the project '" + project.getName() + "' has been assigned a new Project Owner: " + owner.getFullName() + " (" + owner.getEmail() + ") by " + updaterName + ".\n\n" +
-                                "Best regards,\nSorim Team"
-                            );
-                        }
-                    }
                 } catch (Exception ignored) {}
             }
         }
@@ -385,7 +344,8 @@ public class ProjectServiceImpl {
                 project.getMembers().add(sm);
 
                 // Send notification email to the new Scrum Master
-                String projectUrl = "http://localhost:3000/login?email=" + sm.getEmail() + "&redirect=/projects/" + project.getId();
+                String baseUrl = (frontendUrl != null) ? frontendUrl : "http://localhost:5173";
+                String projectUrl = baseUrl + "/login?email=" + sm.getEmail() + "&redirect=/projects/" + project.getId();
                 String subject = "Assigned as Scrum Master: " + project.getName();
                 String body = "Hello " + sm.getFullName() + ",\n\n" +
                               "You have been added and assigned as the Scrum Master for the project '" + project.getName() + "' (" + project.getProjectKey() + ") by " + updaterName + ".\n\n" +
@@ -393,20 +353,6 @@ public class ProjectServiceImpl {
                               "Best regards,\nSorim Team";
                 try {
                     emailService.sendEmail(sm.getEmail(), updaterEmail, subject, body);
-                } catch (Exception ignored) {}
-
-                // Also notify other admins
-                try {
-                    List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                    for (User adm : admins) {
-                        if (!adm.getEmail().equalsIgnoreCase(sm.getEmail())) {
-                            emailService.sendEmail(adm.getEmail(), updaterEmail, "[Admin Alert] Scrum Master Assigned: " + project.getName(),
-                                "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                                "This is to notify you that the user " + sm.getFullName() + " (" + sm.getEmail() + ") has been assigned as Scrum Master for project '" + project.getName() + "' by " + updaterName + ".\n\n" +
-                                "Best regards,\nSorim Team"
-                            );
-                        }
-                    }
                 } catch (Exception ignored) {}
             }
         }

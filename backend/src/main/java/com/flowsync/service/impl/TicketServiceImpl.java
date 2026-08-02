@@ -31,6 +31,9 @@ public class TicketServiceImpl {
     private final com.flowsync.service.EmailService emailService;
     private final com.flowsync.service.NotificationHelper notificationHelper;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
+    private String frontendUrl;
+
     public TicketResponse createTicket(CreateTicketRequest req, Long reporterId) {
         Project project = projectRepository.findById(req.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", req.getProjectId()));
@@ -85,7 +88,8 @@ public class TicketServiceImpl {
 
         // Send email to assignee
         if (saved.getAssignee() != null) {
-            String ticketUrl = "http://localhost:3000/login?email=" + saved.getAssignee().getEmail() + "&redirect=/tickets/" + saved.getId();
+            String baseUrl = (frontendUrl != null) ? frontendUrl : "http://localhost:5173";
+            String ticketUrl = baseUrl + "/login?email=" + saved.getAssignee().getEmail() + "&redirect=/tickets/" + saved.getId();
             String subject = "New Ticket Assigned: " + saved.getTicketKey() + " - " + saved.getTitle();
             String body = "Hello " + saved.getAssignee().getFullName() + ",\n\n" +
                           "A new ticket '" + saved.getTitle() + "' (" + saved.getTicketKey() + ") has been created and assigned to you by " + creatorName + ".\n\n" +
@@ -97,19 +101,7 @@ public class TicketServiceImpl {
                 emailService.sendEmail(saved.getAssignee().getEmail(), creatorEmail, subject, body);
             } catch (Exception ignored) {}
 
-            // Notify admins
-            try {
-                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                for (User adm : admins) {
-                    if (!adm.getEmail().equalsIgnoreCase(saved.getAssignee().getEmail())) {
-                        emailService.sendEmail(adm.getEmail(), creatorEmail, "[Admin Alert] New Ticket Created: " + saved.getTicketKey(),
-                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                            "A new ticket '" + saved.getTitle() + "' (" + saved.getTicketKey() + ") has been created and assigned to " + saved.getAssignee().getFullName() + " by " + creatorName + ".\n\n" +
-                            "Best regards,\nSorim Team"
-                        );
-                    }
-                }
-            } catch (Exception ignored) {}
+            // No admin alerts needed
         }
 
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + saved.getId() + "}");
@@ -206,7 +198,8 @@ public class TicketServiceImpl {
                     assignedByEmail = currentUser.getEmail();
                 }
 
-                String ticketUrl = "http://localhost:3000/tickets/" + ticket.getId();
+                String baseUrl = (frontendUrl != null) ? frontendUrl : "http://localhost:5173";
+                String ticketUrl = baseUrl + "/login?email=" + newAssignee.getEmail() + "&redirect=/tickets/" + ticket.getId();
                 emailService.sendEmail(
                     newAssignee.getEmail(),
                     assignedByEmail,
@@ -221,20 +214,6 @@ public class TicketServiceImpl {
             } catch (Exception e) {
                 log.error("Failed to send email to assigned user: {}", e.getMessage());
             }
-
-            // Also notify all admins
-            try {
-                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
-                for (User adm : admins) {
-                    if (!adm.getEmail().equalsIgnoreCase(newAssignee.getEmail())) {
-                        emailService.sendEmail(adm.getEmail(), assignedByEmail, "[Admin Alert] Ticket Assigned: " + ticket.getTicketKey(),
-                            "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                            "This is to notify you that the ticket '" + ticket.getTitle() + "' (" + ticket.getTicketKey() + ") has been assigned/transferred to " + newAssignee.getFullName() + " (" + newAssignee.getEmail() + ") by " + assignedByName + ".\n\n" +
-                            "Best regards,\nSorim Team"
-                        );
-                    }
-                }
-            } catch (Exception ignored) {}
         }
         return res;
     }

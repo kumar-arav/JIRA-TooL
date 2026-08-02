@@ -46,7 +46,7 @@ public class DataSeeder implements CommandLineRunner {
             try {
                 java.nio.file.Files.writeString(
                     java.nio.file.Path.of("admin_credentials.txt"),
-                    "Admin Email: admin@flowsync.com\nTemporary Password: " + adminRawPassword + "\n"
+                    "Admin Email: admin@sorim.com\nTemporary Password: " + adminRawPassword + "\n"
                 );
                 log.info("Admin temporary credentials written to admin_credentials.txt");
             } catch (Exception e) {
@@ -55,7 +55,7 @@ public class DataSeeder implements CommandLineRunner {
 
             User admin = User.builder()
                     .firstName("Admin").lastName("User")
-                    .email("admin@flowsync.com")
+                    .email("admin@sorim.com")
                     .password(encoder.encode(adminRawPassword))
                     .role(Role.ADMIN).avatarColor("#374151")
                     .mfaEnabled(true).active(true).passwordChanged(false)

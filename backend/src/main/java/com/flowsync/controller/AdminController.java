@@ -140,19 +140,25 @@ public class AdminController {
             log.error("Failed to send welcome email to {}: {}", email, e.getMessage());
         }
 
-        // Also notify other admins
+        // Notify all other registered users in the system about the new user
         try {
-            List<User> admins = userRepository.findByRole(Role.ADMIN);
-            for (User adm : admins) {
-                if (!adm.getEmail().equalsIgnoreCase(email)) {
-                    emailService.sendEmail(adm.getEmail(), adminEmail, "[Admin Alert] New Employee Created", 
-                        "Hello Administrator " + adm.getFullName() + ",\n\n" +
-                        "A new employee account has been created for " + name + " (" + email + ") with the role: " + role.name() + " by " + (adminEmail != null ? adminEmail : "System") + ".\n\n" +
-                        "Best regards,\nSorim Team"
-                    );
+            List<User> allUsers = userRepository.findAll();
+            for (User u : allUsers) {
+                if (u.getId().equals(savedEmployee.getId())) {
+                    continue; // Skip the newly created user
                 }
+                emailService.sendEmail(
+                    u.getEmail(),
+                    adminEmail,
+                    "New Member Registered: " + savedEmployee.getFullName(),
+                    "Hello " + u.getFullName() + ",\n\n" +
+                    "A new member, " + savedEmployee.getFullName() + " (" + savedEmployee.getRole().name().replace("_", " ") + "), has been registered in the system by the administrator.\n\n" +
+                    "Best regards,\nSorim Team"
+                );
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.error("Failed to notify existing users of user addition: {}", e.getMessage());
+        }
 
         // Broadcast user addition via websocket
         try {
@@ -187,6 +193,26 @@ public class AdminController {
 
         admin.setEmail(normalizedNew);
         User savedAdmin = userRepository.save(admin);
+
+        // Notify all other registered users in system about admin profile update
+        try {
+            List<User> allUsers = userRepository.findAll();
+            for (User u : allUsers) {
+                if (u.getId().equals(admin.getId())) {
+                    continue;
+                }
+                emailService.sendEmail(
+                    u.getEmail(),
+                    normalizedNew,
+                    "Administrator Profile Updated",
+                    "Hello " + u.getFullName() + ",\n\n" +
+                    "This is to notify you that the administrator's email/profile has been updated in the system.\n\n" +
+                    "Best regards,\nSorim Team"
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Failed to notify users of admin email update: {}", e.getMessage());
+        }
 
         // Update credentials file if password is not changed
         if (!savedAdmin.isPasswordChanged()) {
@@ -268,6 +294,25 @@ public class AdminController {
         }
 
         userRepository.delete(employee);
+
+        // Notify all other registered users in the system about account removal
+        try {
+            List<User> allUsers = userRepository.findAll();
+            for (User u : allUsers) {
+                if (u.getId().equals(employee.getId())) {
+                    continue; // Skip the deleted user
+                }
+                emailService.sendSystemEmail(
+                    u.getEmail(),
+                    "User Profile Removed",
+                    "Hello " + u.getFullName() + ",\n\n" +
+                    "This is to notify you that the user account for " + employee.getFullName() + " has been removed/deleted from the system by the administrator.\n\n" +
+                    "Best regards,\nSorim Team"
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Failed to notify other users of employee deletion: {}", e.getMessage());
+        }
 
         try {
             com.flowsync.config.WebSocketConfiguration.broadcast(

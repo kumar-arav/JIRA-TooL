@@ -41,7 +41,7 @@ export default function VPDashboard({ data }: { data: DashboardData }) {
   const highRisk = projects.filter(p => p.progressPercent < 40 && p.status !== 'COMPLETED')
 
   const [risksList] = useState<Array<{ level: string; text: string; tag: string }>>(() => {
-    const saved = localStorage.getItem('flowsync_risks')
+    const saved = localStorage.getItem('sorim_risks')
     return saved ? JSON.parse(saved) : [
       { level: 'CRITICAL', text: 'Audit shows legacy dependencies requiring patch release.', tag: 'tag-red' },
       { level: 'MONITORING', text: 'Unit test coverage decreased slightly under Sprint 3.', tag: 'tag-gray' }

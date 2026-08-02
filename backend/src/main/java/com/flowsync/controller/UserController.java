@@ -29,7 +29,10 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.mapUser(user)));
     }
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> update(@PathVariable Long id, @RequestBody java.util.Map<String, String> req) {
+    public ResponseEntity<ApiResponse<UserResponse>> update(
+            @PathVariable Long id, 
+            @RequestBody java.util.Map<String, String> req,
+            @AuthenticationPrincipal User currentUser) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         String oldEmail = user.getEmail();
         if (req.containsKey("firstName")) user.setFirstName(req.get("firstName"));
@@ -54,8 +57,8 @@ public class UserController {
         boolean passwordChanged = req.containsKey("password") && req.get("password") != null && !req.get("password").trim().isEmpty();
         userRepository.save(user);
 
-        // Notify admins if email or password was updated
-        if (emailChanged || passwordChanged) {
+        // Notify admins if email or password was updated (unless the updater is an Admin themselves)
+        if ((emailChanged || passwordChanged) && (currentUser == null || currentUser.getRole() != com.flowsync.enums.Role.ADMIN)) {
             try {
                 List<User> admins = userRepository.findAll().stream()
                         .filter(u -> u.getRole() == com.flowsync.enums.Role.ADMIN)
@@ -73,6 +76,25 @@ public class UserController {
             } catch (Exception ignored) {}
         }
 
+        // Send notifications to all other registered users if the Admin is updating a profile
+        if (currentUser != null && currentUser.getRole() == com.flowsync.enums.Role.ADMIN) {
+            try {
+                List<User> allUsers = userRepository.findAll();
+                for (User u : allUsers) {
+                    if (u.getId().equals(user.getId())) {
+                        continue; // Skip the updated user
+                    }
+                    emailService.sendSystemEmail(
+                        u.getEmail(),
+                        "User Profile Updated",
+                        "Hello " + u.getFullName() + ",\n\n" +
+                        "This is to notify you that the profile/credentials for " + user.getFullName() + " has been updated by the administrator.\n\n" +
+                        "Best regards,\nSorim Team"
+                    );
+                }
+            } catch (Exception ignored) {}
+        }
+
         if (emailChanged) {
             try {
                 String roleText = user.getRole() == com.flowsync.enums.Role.ADMIN 
@@ -81,9 +103,9 @@ public class UserController {
 
                 emailService.sendSystemEmail(
                     user.getEmail(),
-                    "Profile Email Updated - FlowSync",
+                    "Profile Email Updated - Sorim",
                     "Hello " + user.getFullName() + ",\n\n" +
-                    "Your FlowSync profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
+                    "Your Sorim profile email address has been successfully updated to: " + user.getEmail() + ".\n\n" +
                     roleText + "\n\n" +
                     "Best regards,\nSorim Team"
                 );

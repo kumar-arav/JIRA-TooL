@@ -48,7 +48,7 @@ export default function CTODashboard({ data }: { data: DashboardData }) {
   }))
 
   const [risksList, setRisksList] = useState<Array<{ level: string; text: string; tag: string }>>(() => {
-    const saved = localStorage.getItem('flowsync_risks')
+    const saved = localStorage.getItem('sorim_risks')
     return saved ? JSON.parse(saved) : [
       { level: 'CRITICAL', text: 'Audit shows legacy dependencies requiring patch release.', tag: 'tag-red' },
       { level: 'MONITORING', text: 'Unit test coverage decreased slightly under Sprint 3.', tag: 'tag-gray' }
@@ -65,7 +65,7 @@ export default function CTODashboard({ data }: { data: DashboardData }) {
     const tag = newRiskLevel === 'CRITICAL' ? 'tag-red' : newRiskLevel === 'HIGH' ? 'tag-orange' : newRiskLevel === 'MEDIUM' ? 'tag-amber' : 'tag-gray'
     const updated = [...risksList, { level: newRiskLevel, text: newRiskText, tag }]
     setRisksList(updated)
-    localStorage.setItem('flowsync_risks', JSON.stringify(updated))
+    localStorage.setItem('sorim_risks', JSON.stringify(updated))
     setNewRiskText('')
     setShowAddRisk(false)
   }
@@ -73,7 +73,7 @@ export default function CTODashboard({ data }: { data: DashboardData }) {
   const handleDeleteRisk = (index: number) => {
     const updated = risksList.filter((_, i) => i !== index)
     setRisksList(updated)
-    localStorage.setItem('flowsync_risks', JSON.stringify(updated))
+    localStorage.setItem('sorim_risks', JSON.stringify(updated))
   }
 
   return (
