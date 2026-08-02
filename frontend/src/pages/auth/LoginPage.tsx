@@ -18,7 +18,7 @@ const COUNTRY_CODES = [
 ]
 
 const DEFAULT_DEMO_ACCOUNTS: Record<string, { email: string; password: string; name: string; initials: string; color: string }> = {
-  'Admin': { email: 'admin@sorim.com', password: 'password123', name: 'Admin User', initials: 'AD', color: '#374151' }
+  'Admin': { email: 'admin@flowsync.com', password: 'password123', name: 'Admin User', initials: 'AD', color: '#374151' }
 }
 
 export default function LoginPage() {
