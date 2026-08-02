@@ -71,7 +71,7 @@ export default function SprintDetailModal({
     try {
       const all = await getTicketsByProject(projectId)
       // Filter out tickets that are already in a sprint
-      setAvailableTickets(all.filter((t: Ticket) => !t.sprint))
+      setAvailableTickets(all.filter((t: Ticket) => !t.sprintId))
     } catch {
       toast.error('Failed to load project backlog')
     }

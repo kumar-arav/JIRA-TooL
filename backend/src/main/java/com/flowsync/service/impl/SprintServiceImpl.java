@@ -2,6 +2,7 @@ package com.flowsync.service.impl;
 
 import com.flowsync.dto.request.CreateSprintRequest;
 import com.flowsync.dto.response.SprintResponse;
+import com.flowsync.entity.Project;
 import com.flowsync.entity.Sprint;
 import com.flowsync.enums.SprintStatus;
 import com.flowsync.enums.TicketStatus;
