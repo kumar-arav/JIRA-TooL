@@ -49,6 +49,7 @@ public class TicketServiceImpl {
                 .priority(req.getPriority())
                 .status(TicketStatus.TODO)
                 .project(project)
+                .dueDate(req.getDueDate())
                 .build();
 
         if (reporterId != null) {
@@ -236,6 +237,7 @@ public class TicketServiceImpl {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
         ticket.setTesterApproved(true);
+        checkAndCloseTicket(ticket);
         TicketResponse res = mapToResponse(ticketRepository.save(ticket));
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
         return res;
@@ -245,9 +247,55 @@ public class TicketServiceImpl {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", ticketId));
         ticket.setManagerApproved(true);
+        checkAndCloseTicket(ticket);
         TicketResponse res = mapToResponse(ticketRepository.save(ticket));
         com.flowsync.config.WebSocketConfiguration.broadcast("{\"type\": \"TICKET_UPDATED\", \"ticketId\": " + ticketId + "}");
         return res;
+    }
+
+    private void checkAndCloseTicket(Ticket ticket) {
+        if (ticket.isTesterApproved() && ticket.isManagerApproved()) {
+            ticket.setStatus(com.flowsync.enums.TicketStatus.CLOSED);
+            if (ticket.getClosureNotes() == null || ticket.getClosureNotes().isBlank()) {
+                ticket.setClosureNotes("Automatically closed upon Tester and Manager approval.");
+            }
+            
+            // Send email to admin, project owner, assignee, and reporter
+            try {
+                String subject = "Ticket Closed: " + ticket.getTicketKey() + " - " + ticket.getTitle();
+                String body = "Hello,\n\n" +
+                              "The ticket '" + ticket.getTitle() + "' (" + ticket.getTicketKey() + ") has been successfully approved by both the Tester and the Manager, and has now been closed.\n\n" +
+                              "Details:\n" +
+                              "Project: " + (ticket.getProject() != null ? ticket.getProject().getName() : "N/A") + "\n" +
+                              "Priority: " + ticket.getPriority().name() + "\n" +
+                              "Assignee: " + (ticket.getAssignee() != null ? ticket.getAssignee().getFullName() : "Unassigned") + "\n" +
+                              "Reporter: " + (ticket.getReporter() != null ? ticket.getReporter().getFullName() : "N/A") + "\n\n" +
+                              "Best regards,\nSorim Team";
+
+                // 1. Project Owner
+                if (ticket.getProject() != null && ticket.getProject().getOwner() != null) {
+                    emailService.sendSystemEmail(ticket.getProject().getOwner().getEmail(), subject, body);
+                }
+                
+                // 2. Admins
+                List<User> admins = userRepository.findByRole(com.flowsync.enums.Role.ADMIN);
+                for (User adm : admins) {
+                    emailService.sendSystemEmail(adm.getEmail(), subject, body);
+                }
+
+                // 3. Assignee
+                if (ticket.getAssignee() != null) {
+                    emailService.sendSystemEmail(ticket.getAssignee().getEmail(), subject, body);
+                }
+
+                // 4. Reporter
+                if (ticket.getReporter() != null) {
+                    emailService.sendSystemEmail(ticket.getReporter().getEmail(), subject, body);
+                }
+            } catch (Exception e) {
+                log.error("Failed to send ticket closure notification emails: {}", e.getMessage());
+            }
+        }
     }
 
     public CommentResponse addComment(Long ticketId, CommentRequest req, Long authorId) {
