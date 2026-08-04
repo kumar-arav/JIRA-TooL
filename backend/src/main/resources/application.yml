@@ -5,17 +5,28 @@ spring:
   application:
     name: flowsync-backend
 
-  # MongoDB Configuration
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/flowsyncdb
+  datasource:
+    url: jdbc:mysql://localhost:3306/flowsyncdb?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: root
+    password: Letmein@123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
   # Email (configure for production)
   mail:
     host: smtp.gmail.com
     port: 587
-    username: [EMAIL_ADDRESS]
-    password: ""
+    username: gangab0934@gmail.com
+    password: "hxvv svnd pvjr doan"
     properties:
       mail:
         smtp:
