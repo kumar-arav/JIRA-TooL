@@ -250,14 +250,9 @@ export default function LoginPage() {
         }
         setStep('VERIFY')
       } else {
-        if (!data.passwordChanged) {
-          setTempAuthData(null)
-          setStep('CHANGE_PASSWORD')
-        } else {
-          dispatch(setCredentials(data))
-          toast.success(`Welcome back, ${data.user.fullName}! 👋`)
-          navigate(projectRedirect || '/dashboard')
-        }
+        dispatch(setCredentials(data))
+        toast.success(`Welcome back, ${data.user.fullName}! 👋`)
+        navigate(projectRedirect || '/dashboard')
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Login failed. Check your credentials.')
@@ -278,14 +273,9 @@ export default function LoginPage() {
       const res = await api.post('/auth/login', { email, password, mfaCode: code })
       const data = res.data.data
       
-      if (!data.passwordChanged) {
-        setTempAuthData(data)
-        setStep('CHANGE_PASSWORD')
-      } else {
-        dispatch(setCredentials(data))
-        toast.success(`Welcome back, ${data.user.fullName}! 👋`)
-        navigate(projectRedirect || '/dashboard')
-      }
+      dispatch(setCredentials(data))
+      toast.success(`Welcome back, ${data.user.fullName}! 👋`)
+      navigate(projectRedirect || '/dashboard')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Login failed. Check verification code.')
     } finally {

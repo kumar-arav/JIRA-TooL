@@ -2,39 +2,45 @@ package com.flowsync.entity;
 
 import com.flowsync.enums.Priority;
 import com.flowsync.enums.TicketStatus;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.DocumentReference;
-
-@Document(collection = "tickets")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Entity
+@Table(name = "tickets")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Ticket extends BaseEntity {
 
-    private String ticketKey;   // e.g. "EHR-101"
+    @Column(unique = true, nullable = false)
+    private String ticketKey;   // e.g. EHR-101
 
+    @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Builder.Default
     private Integer storyPoints = 1;
 
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private TicketStatus status = TicketStatus.TODO;
 
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private Priority priority = Priority.MEDIUM;
 
     private LocalDate dueDate;
 
-    // Closure fields
+    @Column(columnDefinition = "TEXT")
     private String closureNotes;
 
     private String closureProofUrl;
@@ -45,27 +51,37 @@ public class Ticket extends BaseEntity {
     @Builder.Default
     private boolean managerApproved = false;
 
-    // Relations
-    @DocumentReference
+    // ================= Relationships =================
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @DocumentReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sprint_id")
     private Sprint sprint;
 
-    @DocumentReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
     private User assignee;
 
-    @DocumentReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigner_id")
     private User assigner;
 
-    @DocumentReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id")
     private User reporter;
 
-    @DocumentReference(lazy = true)
+    @OneToMany(mappedBy = "ticket",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();
 
-    @DocumentReference(lazy = true)
+    @OneToMany(mappedBy = "ticket",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
     @Builder.Default
     private List<Attachment> attachments = new ArrayList<>();
 }

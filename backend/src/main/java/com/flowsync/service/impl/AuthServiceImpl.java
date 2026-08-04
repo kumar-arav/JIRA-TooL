@@ -83,15 +83,15 @@ public class AuthServiceImpl {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Dummy password check: if password has not been changed, bypass MFA and prompt to change password directly
-        if (!user.isPasswordChanged()) {
-            return AuthResponse.builder()
-                    .mfaRequired(false)
-                    .passwordChanged(false)
-                    .build();
-        }
-
+        // Check if this is the first login. If already verified, bypass OTP and log in directly.
         if (req.getMfaCode() == null || req.getMfaCode().trim().isEmpty()) {
+            if (user.isFirstLoginVerified()) {
+                user.setActive(true);
+                user.setLastLoginTime(java.time.LocalDateTime.now());
+                userRepository.save(user);
+                return buildAuthResponse(user);
+            }
+
             // Generate 6-digit MFA code
             String code = String.valueOf((int) (100000 + Math.random() * 900000));
             user.setTempMfaCode(code);
@@ -122,6 +122,7 @@ public class AuthServiceImpl {
         }
 
         user.setTempMfaCode(null);
+        user.setFirstLoginVerified(true);
         user.setActive(true);
         user.setLastLoginTime(java.time.LocalDateTime.now());
         userRepository.save(user);
