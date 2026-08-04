@@ -6,14 +6,14 @@ spring:
     name: flowsync-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/flowsyncdb?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-    username: root
-    password: your password
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
     open-in-view: false
     properties:
@@ -21,12 +21,11 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
 
-  # Email (configure for production)
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your email id
-    password: ""
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -38,48 +37,35 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
-# JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:FlowSyncSuperSecretKeyForJWTTokenSigningMustBe256BitsLongAtLeast2024}
-  expiration: 604800000 # 7 days in ms
-  refresh-expiration: 2592000000 # 30 days in ms
+  secret: ${JWT_SECRET}
+  expiration: 604800000
+  refresh-expiration: 2592000000
 
-# App Configuration
 app:
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  frontend-url: ${FRONTEND_URL}
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${ALLOWED_ORIGINS}
   upload:
     max-file-size: 10MB
   ai:
     enabled: true
     mock: true
 
-# Logging
 logging:
   level:
-    com.flowsync: TRACE
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.flowsync: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
 
-# Actuator
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when_authorized
 
-# SpringDoc / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-    operationsSorter: method
-  info:
-    title: Intellisprint API
-    version: 1.0.0
-    description: AI-Powered Project Management & Ticketing System API
