@@ -32,12 +32,13 @@ class WebSocketClient {
 
     this.connectedEmail = email;
 
-    const backendUrl =
-      https://jira-tool-1.onrender.com;
+    // Backend Render URL
+    const backendUrl = "https://jira-tool-1.onrender.com";
 
+    // Convert HTTP/HTTPS to WS/WSS
     const wsBase = backendUrl
-      .replace(/^https:/, "wss:")
-      .replace(/^http:/, "ws:/");
+      .replace("https://", "wss://")
+      .replace("http://", "ws://");
 
     const wsUrl = `${wsBase}/api/ws${
       email ? `?email=${encodeURIComponent(email)}` : ""
