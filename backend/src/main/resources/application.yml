@@ -22,12 +22,12 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
 
   spring:
+ spring:
   mail:
     host: smtp-relay.brevo.com
     port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
-
     properties:
       mail:
         smtp:
@@ -37,6 +37,9 @@ spring:
           connectiontimeout: 30000
           timeout: 30000
           writetimeout: 30000
+
+mail:
+  from: ${MAIL_FROM}
 
 jwt:
   secret: ${JWT_SECRET}
