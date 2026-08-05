@@ -33,7 +33,7 @@ class WebSocketClient {
     this.connectedEmail = email;
 
     const backendUrl =
-      import.meta.env.VITE_API_URL || "http://localhost:8080";
+      https://jira-tool-1.onrender.com;
 
     const wsBase = backendUrl
       .replace(/^https:/, "wss:")
