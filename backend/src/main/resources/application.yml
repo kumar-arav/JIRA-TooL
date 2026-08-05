@@ -21,20 +21,20 @@ spring:
         format_sql: true
 
   mail:
-  host: smtp.gmail.com
-  port: 587
-  username: ${MAIL_USERNAME}
-  password: ${MAIL_PASSWORD}
-  properties:
-    mail:
-      smtp:
-        auth: true
-        starttls:
-          enable: true
-          required: true
-        connectiontimeout: 30000
-        timeout: 30000
-        writetimeout: 30000
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 30000
+          timeout: 30000
+          writetimeout: 30000
 
 jwt:
   secret: ${JWT_SECRET}
