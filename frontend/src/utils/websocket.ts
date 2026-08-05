@@ -1,16 +1,17 @@
 class WebSocketClient {
   private ws: WebSocket | null = null;
   private listeners: Set<(data: any) => void> = new Set();
-  private reconnectTimer: any = null;
+  private reconnectTimer: ReturnType<typeof setInterval> | null = null;
   private connectedEmail: string | null = null;
 
   connect() {
-    let email = '';
+    let email = "";
+
     try {
-      const saved = localStorage.getItem('fs_auth');
+      const saved = localStorage.getItem("fs_auth");
       if (saved) {
         const authData = JSON.parse(saved);
-        if (authData.user && authData.user.email) {
+        if (authData.user?.email) {
           email = authData.user.email;
         }
       }
@@ -18,7 +19,11 @@ class WebSocketClient {
       console.error(e);
     }
 
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       if (this.connectedEmail === email) {
         return;
       }
@@ -26,13 +31,25 @@ class WebSocketClient {
     }
 
     this.connectedEmail = email;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws${email ? `?email=${encodeURIComponent(email)}` : ''}`;
+
+    const backendUrl =
+      import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+    const wsBase = backendUrl
+      .replace(/^https:/, "wss:")
+      .replace(/^http:/, "ws:/");
+
+    const wsUrl = `${wsBase}/api/ws${
+      email ? `?email=${encodeURIComponent(email)}` : ""
+    }`;
+
+    console.log("Connecting to:", wsUrl);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
-      console.log("WebSocket connected to IntelliSprint Broker");
+      console.log("WebSocket connected");
+
       if (this.reconnectTimer) {
         clearInterval(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -42,14 +59,14 @@ class WebSocketClient {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        this.listeners.forEach(listener => listener(data));
+        this.listeners.forEach((listener) => listener(data));
       } catch (e) {
         console.error("Failed to parse WebSocket message:", e);
       }
     };
 
     this.ws.onclose = () => {
-      console.log("WebSocket disconnected. Attempting reconnect...");
+      console.log("WebSocket disconnected. Reconnecting...");
       this.scheduleReconnect();
     };
 
@@ -69,6 +86,7 @@ class WebSocketClient {
 
   subscribe(callback: (data: any) => void) {
     this.listeners.add(callback);
+
     return () => {
       this.listeners.delete(callback);
     };
@@ -78,7 +96,7 @@ class WebSocketClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     } else {
-      console.warn("WebSocket is not connected. Message not sent:", data);
+      console.warn("WebSocket is not connected.", data);
     }
   }
 }
