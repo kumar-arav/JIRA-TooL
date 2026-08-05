@@ -21,7 +21,7 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
 
-  spring:
+  
  spring:
   mail:
     host: smtp-relay.brevo.com
