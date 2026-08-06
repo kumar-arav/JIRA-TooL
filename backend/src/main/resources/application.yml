@@ -51,8 +51,7 @@ app:
     enabled: true
     mock: true
 
-mail:
-  from: ${MAIL_FROM}
+
 
 logging:
   level:
